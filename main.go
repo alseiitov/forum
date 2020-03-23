@@ -7,15 +7,14 @@ import (
 	"net/http"
 
 	_ "github.com/mattn/go-sqlite3"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
-	ID        int
-	Username  string
-	FirstName string
-	LastName  string
-	Password  string
-	Email     string
+	ID       int
+	Username string
+	Password string
+	Email    string
 }
 
 func main() {
@@ -49,11 +48,9 @@ func signup(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		r.ParseForm()
 		user := User{
-			Username:  r.FormValue("username"),
-			FirstName: r.FormValue("fname"),
-			LastName:  r.FormValue("lname"),
-			Password:  r.FormValue("password2"),
-			Email:     r.FormValue("email"),
+			Username: r.FormValue("username"),
+			Password: r.FormValue("password2"),
+			Email:    r.FormValue("email"),
 		}
 		err := checkNewUser(user)
 		if err == "" {
@@ -73,19 +70,43 @@ func checkNewUser(user User) string {
 	email.Scan(&c.Email)
 
 	if c.Username != "" {
-		return "Username is already in use, plese try again!"
+		return "Username is already in use, please try again!"
 	}
 	if c.Email != "" {
-		return "E-mail is already in use, plese try again!"
+		return "E-mail is already in use, please try again!"
 	}
 	return ""
 }
 
 func addUser(user User) {
 	db, _ := sql.Open("sqlite3", "./db/database.db")
-	add, _ := db.Prepare("INSERT INTO users (username, password, firstname, lastname, email) VALUES (?, ?, ?, ?, ?)")
-	add.Exec(user.Username, user.Password, user.FirstName, user.LastName, user.Email)
-	fmt.Println("added new user")
+	add, _ := db.Prepare("INSERT INTO users (username, password, email) VALUES (?, ?, ?)")
+	fmt.Println(user.Password)
+	user.Password = encryptPass(user)
+	fmt.Println(user.Password)
+	add.Exec(user.Username, user.Password, user.Email)
+}
+
+func encryptPass(user User) string {
+	salt := user.Email + user.Username
+	for _, r := range salt {
+		r = rot13(r)
+	}
+	encryptedPass, _ := bcrypt.GenerateFromPassword([]byte(salt+user.Password+salt), bcrypt.MinCost)
+	return string(encryptedPass)
+}
+
+func rot13(r rune) rune {
+	if r >= 'A' && r < 'M' {
+		return r + 13
+	} else if r > 'M' && r <= 'Z' {
+		return r - 13
+	} else if r >= 'a' && r < 'm' {
+		return r + 13
+	} else if r > 'm' && r <= 'z' {
+		return r - 13
+	}
+	return r
 }
 
 func createDB() {
@@ -96,8 +117,6 @@ func createDB() {
 		id			INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, 
 		username	TEXT UNIQUE NOT NULL, 
 		password	TEXT NOT NULL, 
-		firstname	TEXT NOT NULL, 
-		lastname	TEXT NOT NULL, 
 		email		TEXT UNIQUE NOT NULL
 	)`)
 	if err != nil {
