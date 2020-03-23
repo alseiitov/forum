@@ -55,14 +55,30 @@ func signup(w http.ResponseWriter, r *http.Request) {
 			Password:  r.FormValue("password2"),
 			Email:     r.FormValue("email"),
 		}
-		if checkNewUser(user) {
+		err := checkNewUser(user)
+		if err == "" {
 			addUser(user)
+		} else {
+			w.Write([]byte(err))
 		}
 	}
 }
 
-func checkNewUser(user User) bool {
-	return true
+func checkNewUser(user User) string {
+	db, _ := sql.Open("sqlite3", "./db/database.db")
+	username := db.QueryRow("SELECT username FROM users WHERE username = $1", user.Username)
+	email := db.QueryRow("SELECT email FROM users WHERE email = $1", user.Email)
+	c := User{}
+	username.Scan(&c.Username)
+	email.Scan(&c.Email)
+
+	if c.Username != "" {
+		return "Username is already in use, plese try again!"
+	}
+	if c.Email != "" {
+		return "E-mail is already in use, plese try again!"
+	}
+	return ""
 }
 
 func addUser(user User) {
@@ -78,33 +94,29 @@ func createDB() {
 	users, err := db.Prepare(`
 		CREATE TABLE IF NOT EXISTS users (
 		id			INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, 
-		username	TEXT UNIQUE, 
-		password	TEXT, 
-		firstname	TEXT, 
-		lastname	TEXT, 
-		email		TEXT UNIQUE
+		username	TEXT UNIQUE NOT NULL, 
+		password	TEXT NOT NULL, 
+		firstname	TEXT NOT NULL, 
+		lastname	TEXT NOT NULL, 
+		email		TEXT UNIQUE NOT NULL
 	)`)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 	users.Exec()
-	// users, _ = db.Prepare("INSERT INTO users (firstname, lastname) VALUES (?, ?)")
-	// users.Exec("John", "Doe")
 
 	posts, err := db.Prepare(`
 			CREATE TABLE IF NOT EXISTS posts (
 			id			INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
-			title		TEXT,
-			author		INTEGER,
+			title		TEXT NOT NULL,
+			author		INTEGER NOT NULL,
 			data		TEXT,
-			categorie	TEXT,
-			date		TEXT,
+			categorie	TEXT NOT NULL,
+			date		DATETIME,
 			likes		INTEGER
 	)`)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 	posts.Exec()
-	// posts, _ = db.Prepare("INSERT INTO posts (author, categorie) VALUES (?, ?)")
-	// posts.Exec(5, "Cars")
 }
