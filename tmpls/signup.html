@@ -7,7 +7,7 @@
     <title>Sign up</title>
 </head>
 <body>
-    {{ template "header" }}
+    {{ template "header" . }}
     <div>
         <form action="/signup" method="post">
             <input type="text" name="username" placeholder="Username">
