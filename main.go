@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 	"time"
 
@@ -27,8 +28,48 @@ type Session struct {
 	Date   time.Time
 }
 
+var tablesForDB = []string{
+	`	CREATE TABLE IF NOT EXISTS users (
+		id			INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, 
+		username	TEXT UNIQUE NOT NULL, 
+		password	TEXT NOT NULL, 
+		email		TEXT UNIQUE NOT NULL,
+		role		TEXT,
+		avatar		TEXT
+	)`,
+
+	`	CREATE TABLE IF NOT EXISTS posts (
+		id			INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+		title		TEXT NOT NULL,
+		image		TEXT,
+		author		INTEGER NOT NULL,
+		data		TEXT,
+		categorie	TEXT NOT NULL,
+		date		DATETIME,
+		likes		INTEGER
+	)`,
+
+	`	CREATE	TABLE IF NOT EXISTS comments (
+		id			INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+		author_id	INTEGER,
+		post_id		INTEGER,
+		data		TEXT,
+		date		DATETIME
+	)`,
+
+	`	CREATE		TABLE IF NOT EXISTS sessions (
+		user_id		INTEGER NOT NULL,
+		uuid		TEXT NOT NULL,
+		date		DATETIME
+	)`,
+}
+
+var tmpls = template.Must(template.ParseGlob("./tmpls/*"))
+
 func main() {
-	createDB()
+	for _, table := range tablesForDB {
+		createDB(table)
+	}
 	go cleanExpiredSessions()
 
 	images := http.FileServer(http.Dir("./db/images"))
@@ -41,21 +82,21 @@ func main() {
 	http.HandleFunc("/logout", logout)
 	http.HandleFunc("/signup", signup)
 	http.HandleFunc("/secret", secret)
+
 	fmt.Println("Running...")
-	http.ListenAndServe(":8080", nil)
+	log.Println(http.ListenAndServe(":8080", nil))
+
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
 	user := getUserByCookie(w, r)
-	template, _ := template.ParseFiles("./tmpls/index.html")
-	template.Execute(w, user)
+	tmpls.ExecuteTemplate(w, "index", user)
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		template, _ := template.ParseFiles("./tmpls/login.html")
-		template.Execute(w, nil)
+		tmpls.ExecuteTemplate(w, "login", nil)
 	case "POST":
 		username := r.FormValue("username")
 		password := r.FormValue("password")
@@ -67,7 +108,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			addSessionToDB(w, r, user)
-			w.Write([]byte("Welcome"))
+			http.Redirect(w, r, "/", http.StatusSeeOther)
 		}
 	}
 }
@@ -80,13 +121,13 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	}
 	db, _ := sql.Open("sqlite3", "./db/database.db")
 	db.Exec("DELETE FROM sessions WHERE user_id = $1", user.ID)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func signup(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		template, _ := template.ParseFiles("./tmpls/signup.html")
-		template.Execute(w, nil)
+		tmpls.ExecuteTemplate(w, "signup", nil)
 	case "POST":
 		r.ParseForm()
 		user := User{
@@ -98,6 +139,7 @@ func signup(w http.ResponseWriter, r *http.Request) {
 		if err == "" {
 			addUserToDB(user)
 			addSessionToDB(w, r, user)
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
 		} else {
 			w.Write([]byte(err))
 		}
@@ -169,6 +211,10 @@ func getUserByCookie(w http.ResponseWriter, req *http.Request) User {
 	session := getSessionByUUID(userCookie.Value)
 	user := getUserByID(session.UserID)
 
+	if user.Role == "" {
+		user.Role = "guest"
+	}
+
 	return user
 }
 
@@ -205,62 +251,14 @@ func encryptPass(user User) string {
 	return string(encryptedPass)
 }
 
-func createDB() {
+func createDB(table string) {
 	db, _ := sql.Open("sqlite3", "./db/database.db")
 
-	users, err := db.Prepare(`
-		CREATE TABLE IF NOT EXISTS users (
-		id			INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, 
-		username	TEXT UNIQUE NOT NULL, 
-		password	TEXT NOT NULL, 
-		email		TEXT UNIQUE NOT NULL,
-		role		TEXT,
-		avatar		TEXT
-	)`)
+	stmt, err := db.Prepare(table)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	users.Exec()
-
-	posts, err := db.Prepare(`
-		CREATE TABLE IF NOT EXISTS posts (
-		id			INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
-		title		TEXT NOT NULL,
-		image		TEXT,
-		author		INTEGER NOT NULL,
-		data		TEXT,
-		categorie	TEXT NOT NULL,
-		date		DATETIME,
-		likes		INTEGER
-	)`)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	posts.Exec()
-
-	sessions, err := db.Prepare(`
-		CREATE		TABLE IF NOT EXISTS sessions (
-		user_id		INTEGER NOT NULL,
-		uuid		TEXT NOT NULL,
-		date		DATETIME
-	)`)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	sessions.Exec()
-
-	comments, err := db.Prepare(`
-		CREATE	TABLE IF NOT EXISTS comments (
-		id			INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
-		author_id	INTEGER,
-		post_id		INTEGER,
-		data		TEXT,
-		date		DATETIME
-	)`)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	comments.Exec()
+	stmt.Exec()
 }
 
 func cleanExpiredSessions() {
