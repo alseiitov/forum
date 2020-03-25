@@ -134,7 +134,7 @@ func getCategorieName(ID int) string {
 	row := db.QueryRow("SELECT name FROM categories WHERE id = $1", ID)
 
 	var name string
-	row.Scan(&ID)
+	row.Scan(&name)
 
 	return name
 }
@@ -149,10 +149,42 @@ func getPostsByCategorieID(ID int) []Post {
 	var posts []Post
 	for rows.Next() {
 		var p Post
-		rows.Scan(&p.ID, &p.Title, &p.Image, &p.Author, &p.Data, &p.Categorie, &p.Date, &p.Likes)
-		author := getUserByID(p.Author)
+		rows.Scan(&p.ID, &p.Title, &p.Image, &p.AuthorID, &p.Data, &p.Categorie, &p.Date, &p.Likes)
+		author := getUserByID(p.AuthorID)
 		p.AuthorUsername = author.Username
 		posts = append(posts, p)
 	}
 	return posts
+}
+
+func getPostByID(ID int) Post {
+	db, _ := sql.Open("sqlite3", "./db/database.db")
+	defer db.Close()
+
+	row := db.QueryRow("SELECT * FROM posts WHERE id = $1", ID)
+
+	var p Post
+	row.Scan(&p.ID, &p.Title, &p.Image, &p.AuthorID, &p.Data, &p.Categorie, &p.Date, &p.Likes)
+	author := getUserByID(p.AuthorID)
+	p.AuthorUsername = author.Username
+
+	return p
+}
+
+func getCommentsByPostID(ID int) []Comment {
+	db, _ := sql.Open("sqlite3", "./db/database.db")
+	defer db.Close()
+
+	rows, _ := db.Query("SELECT * FROM comments WHERE post_id = $1", ID)
+	defer rows.Close()
+
+	var comments []Comment
+	for rows.Next() {
+		var c Comment
+		rows.Scan(&c.ID, &c.AuthorID, &c.PostID, &c.Data, &c.Date)
+		author := getUserByID(c.AuthorID)
+		c.AuthorUsername = author.Username
+		comments = append(comments, c)
+	}
+	return comments
 }

@@ -26,7 +26,7 @@ type Post struct {
 	ID             int
 	Title          string
 	Image          string
-	Author         int
+	AuthorID       int
 	AuthorUsername string
 	Data           string
 	Categorie      string
@@ -35,11 +35,12 @@ type Post struct {
 }
 
 type Comment struct {
-	ID       int
-	AuthorID int
-	PostID   int
-	Data     string
-	Date     time.Time
+	ID             int
+	AuthorID       int
+	AuthorUsername string
+	PostID         int
+	Data           string
+	Date           time.Time
 }
 
 type IndexPage struct {

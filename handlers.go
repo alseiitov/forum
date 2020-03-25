@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"html/template"
 	"net/http"
 	"strconv"
@@ -84,6 +85,8 @@ func secret(w http.ResponseWriter, r *http.Request) {
 
 func forum(w http.ResponseWriter, r *http.Request) {
 	path := strings.Split(r.URL.Path[7:], "/")
+	fmt.Println(path)
+	user := getUserByCookie(w, r)
 	switch len(path) {
 	case 1:
 		var data CategoriePage
@@ -95,7 +98,13 @@ func forum(w http.ResponseWriter, r *http.Request) {
 
 		tmpls.ExecuteTemplate(w, "categorie", data)
 	case 2:
+		var data PostPage
+		ID, _ := strconv.Atoi(path[1])
+		data.User = user
+		data.Post = getPostByID(ID)
+		data.Comments = getCommentsByPostID(ID)
 
+		tmpls.ExecuteTemplate(w, "post", data)
 	default:
 	}
 }

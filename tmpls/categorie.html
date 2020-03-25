@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forum</title>
+    <title>{{.Name}}</title>
 </head>
 <body>
     {{template "header" .User}}
@@ -13,7 +13,7 @@
         {{range .Posts}}
         <div class="post">
             <a href="/forum/{{.Categorie}}/{{.ID}}">{{.Title}}</a>
-            <a href="/user/{{.Author}}">{{.AuthorUsername}}</a>
+            <a href="/user/{{.AuthorID}}">{{.AuthorUsername}}</a>
             {{.Date}}
         </div>
         {{end}}
