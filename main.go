@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	uuid "github.com/satori/go.uuid"
+
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -15,10 +18,23 @@ type User struct {
 	Username string
 	Password string
 	Email    string
+	Role     string
+	Avatar   string
+}
+
+type Session struct {
+	UserID int
+	UUID   string
+	Date   time.Time
 }
 
 func main() {
 	createDB()
+
+	images := http.FileServer(http.Dir("./db/images"))
+	http.Handle("/images/", http.StripPrefix("/images/", images))
+	static := http.FileServer(http.Dir("./static"))
+	http.Handle("/static/", http.StripPrefix("/static/", static))
 
 	http.HandleFunc("/", index)
 	http.HandleFunc("/login", login)
@@ -28,8 +44,11 @@ func main() {
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
+	user := getUserByCookie(w, r)
+	fmt.Println(user)
 	template, _ := template.ParseFiles("./tmpls/index.html")
-	template.Execute(w, nil)
+	template.Execute(w, user)
+	fmt.Println(getUserByCookie(w, r))
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
@@ -37,6 +56,19 @@ func login(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		template, _ := template.ParseFiles("./tmpls/login.html")
 		template.Execute(w, nil)
+	case "POST":
+		username := r.FormValue("username")
+		password := r.FormValue("password")
+		user := getUserByName(username)
+		salt := user.Email + user.Username
+		err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(salt+password+salt))
+		if err != nil {
+			w.Write([]byte("Wrong Pass"))
+			return
+		} else {
+			addSession(w, r, user)
+			w.Write([]byte("Welcome"))
+		}
 	}
 }
 
@@ -55,10 +87,25 @@ func signup(w http.ResponseWriter, r *http.Request) {
 		err := checkNewUser(user)
 		if err == "" {
 			addUser(user)
+			addSession(w, r, user)
 		} else {
 			w.Write([]byte(err))
 		}
 	}
+}
+
+func addSession(w http.ResponseWriter, r *http.Request, user User) {
+	sessionID, _ := uuid.NewV4()
+	cookie := &http.Cookie{
+		Name:  "session",
+		Value: sessionID.String(),
+	}
+	cookie.MaxAge = 30
+	http.SetCookie(w, cookie)
+
+	db, _ := sql.Open("sqlite3", "./db/database.db")
+	add, _ := db.Prepare("INSERT INTO sessions (user_id, uuid, date) VALUES (?, ?, ?)")
+	add.Exec(user.ID, sessionID, time.Now())
 }
 
 func checkNewUser(user User) string {
@@ -80,33 +127,53 @@ func checkNewUser(user User) string {
 
 func addUser(user User) {
 	db, _ := sql.Open("sqlite3", "./db/database.db")
-	add, _ := db.Prepare("INSERT INTO users (username, password, email) VALUES (?, ?, ?)")
-	fmt.Println(user.Password)
+	add, _ := db.Prepare("INSERT INTO users (username, password, email, role) VALUES (?, ?, ?, ?)")
 	user.Password = encryptPass(user)
-	fmt.Println(user.Password)
-	add.Exec(user.Username, user.Password, user.Email)
+	add.Exec(user.Username, user.Password, user.Email, "user")
+}
+
+func getUserByCookie(w http.ResponseWriter, req *http.Request) User {
+
+	userCookie, err := req.Cookie("session")
+	if err != nil {
+		sessionID, _ := uuid.NewV4()
+		userCookie = &http.Cookie{
+			Name:  "session",
+			Value: sessionID.String(),
+		}
+	}
+	userCookie.MaxAge = 30
+	http.SetCookie(w, userCookie)
+
+	db, _ := sql.Open("sqlite3", "./db/database.db")
+	data := db.QueryRow("SELECT * FROM sessions WHERE uuid = $1", userCookie.Value)
+	var session Session
+	data.Scan(&session.UserID, &session.UUID, &session.Date)
+	user := getUserByID(session.UserID)
+
+	return user
+}
+
+func getUserByID(id int) User {
+	db, _ := sql.Open("sqlite3", "./db/database.db")
+	data := db.QueryRow("SELECT * FROM users WHERE id = $1", id)
+	var user User
+	data.Scan(&user.ID, &user.Username, &user.Password, &user.Email, &user.Role, &user.Avatar)
+	return user
+}
+
+func getUserByName(username string) User {
+	db, _ := sql.Open("sqlite3", "./db/database.db")
+	data := db.QueryRow("SELECT * FROM users WHERE username = $1", username)
+	var user User
+	data.Scan(&user.ID, &user.Username, &user.Password, &user.Email, &user.Role, &user.Avatar)
+	return user
 }
 
 func encryptPass(user User) string {
 	salt := user.Email + user.Username
-	for _, r := range salt {
-		r = rot13(r)
-	}
 	encryptedPass, _ := bcrypt.GenerateFromPassword([]byte(salt+user.Password+salt), bcrypt.MinCost)
 	return string(encryptedPass)
-}
-
-func rot13(r rune) rune {
-	if r >= 'A' && r < 'M' {
-		return r + 13
-	} else if r > 'M' && r <= 'Z' {
-		return r - 13
-	} else if r >= 'a' && r < 'm' {
-		return r + 13
-	} else if r > 'm' && r <= 'z' {
-		return r - 13
-	}
-	return r
 }
 
 func createDB() {
@@ -117,7 +184,9 @@ func createDB() {
 		id			INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, 
 		username	TEXT UNIQUE NOT NULL, 
 		password	TEXT NOT NULL, 
-		email		TEXT UNIQUE NOT NULL
+		email		TEXT UNIQUE NOT NULL,
+		role		TEXT,
+		avatar		TEXT
 	)`)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -125,17 +194,42 @@ func createDB() {
 	users.Exec()
 
 	posts, err := db.Prepare(`
-			CREATE TABLE IF NOT EXISTS posts (
-			id			INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
-			title		TEXT NOT NULL,
-			author		INTEGER NOT NULL,
-			data		TEXT,
-			categorie	TEXT NOT NULL,
-			date		DATETIME,
-			likes		INTEGER
+		CREATE TABLE IF NOT EXISTS posts (
+		id			INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+		title		TEXT NOT NULL,
+		image		TEXT,
+		author		INTEGER NOT NULL,
+		data		TEXT,
+		categorie	TEXT NOT NULL,
+		date		DATETIME,
+		likes		INTEGER
 	)`)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 	posts.Exec()
+
+	sessions, err := db.Prepare(`
+		CREATE		TABLE IF NOT EXISTS sessions (
+		user_id		INTEGER NOT NULL,
+		uuid		TEXT NOT NULL,
+		date		DATETIME
+	)`)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	sessions.Exec()
+
+	comments, err := db.Prepare(`
+		CREATE	TABLE IF NOT EXISTS comments (
+		id			INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+		author_id	INTEGER,
+		post_id		INTEGER,
+		data		TEXT,
+		date		DATETIME
+	)`)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	comments.Exec()
 }
