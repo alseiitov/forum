@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"html/template"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -11,8 +13,10 @@ import (
 var tmpls = template.Must(template.ParseGlob("./tmpls/*"))
 
 func index(w http.ResponseWriter, r *http.Request) {
-	user := getUserByCookie(w, r)
-	tmpls.ExecuteTemplate(w, "index", user)
+	var data IndexPage
+	data.User = getUserByCookie(w, r)
+	data.Categories = getCategoriesList()
+	tmpls.ExecuteTemplate(w, "index", data)
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
@@ -47,9 +51,10 @@ func logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func signup(w http.ResponseWriter, r *http.Request) {
+	user := getUserByCookie(w, r)
 	switch r.Method {
 	case "GET":
-		tmpls.ExecuteTemplate(w, "signup", nil)
+		tmpls.ExecuteTemplate(w, "signup", user)
 	case "POST":
 		r.ParseForm()
 		user := User{
@@ -74,5 +79,23 @@ func secret(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))
 	} else {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
+	}
+}
+
+func forum(w http.ResponseWriter, r *http.Request) {
+	path := strings.Split(r.URL.Path[7:], "/")
+	switch len(path) {
+	case 1:
+		var data CategoriePage
+		ID, _ := strconv.Atoi(path[0])
+		data.ID = ID
+		data.Name = getCategorieName(ID)
+		data.User = getUserByCookie(w, r)
+		data.Posts = getPostsByCategorieID(ID)
+
+		tmpls.ExecuteTemplate(w, "categorie", data)
+	case 2:
+
+	default:
 	}
 }

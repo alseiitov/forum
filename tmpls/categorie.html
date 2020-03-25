@@ -1,0 +1,23 @@
+{{ define "categorie" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forum</title>
+</head>
+<body>
+    {{template "header" .User}}
+    <div class="posts">
+        {{.Name}}
+        {{range .Posts}}
+        <div class="post">
+            <a href="/forum/{{.Categorie}}/{{.ID}}">{{.Title}}</a>
+            <a href="/user/{{.Author}}">{{.AuthorUsername}}</a>
+            {{.Date}}
+        </div>
+        {{end}}
+    </div>
+</body>
+</html>
+{{ end }}

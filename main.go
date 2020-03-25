@@ -19,6 +19,7 @@ func main() {
 	http.HandleFunc("/logout", logout)
 	http.HandleFunc("/signup", signup)
 	http.HandleFunc("/secret", secret)
+	http.HandleFunc("/forum/", forum)
 
 	fmt.Println("Running...")
 	fmt.Println(http.ListenAndServe(":8080", nil))

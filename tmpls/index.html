@@ -7,12 +7,21 @@
     <title>Forum</title>
 </head>
 <body>
-    {{ template "header" . }}
+    {{ template "header" .User }}
     <div>     
-        {{ if eq .Role "user" "admin" "moderator" }}
-            Welcome {{ .Username }}
+        {{ if eq .User.Role "user" "admin" "moderator" }}
+            Welcome {{ .User.Username }}
         {{ end }}
     </div>
+
+    <div class="categories">
+        {{ range .Categories }}
+            <div class="categorie">
+                <a href="/forum/{{.ID}}">{{.Name}}</a>
+            </div>
+        {{ end }}
+    </div>
+
 </body>
 </html>
 {{ end }}
