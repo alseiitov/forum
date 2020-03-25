@@ -9,7 +9,6 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 	uuid "github.com/satori/go.uuid"
-
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -30,6 +29,7 @@ type Session struct {
 
 func main() {
 	createDB()
+	go cleanExpiredSessions()
 
 	images := http.FileServer(http.Dir("./db/images"))
 	http.Handle("/images/", http.StripPrefix("/images/", images))
@@ -38,17 +38,17 @@ func main() {
 
 	http.HandleFunc("/", index)
 	http.HandleFunc("/login", login)
+	http.HandleFunc("/logout", logout)
 	http.HandleFunc("/signup", signup)
+	http.HandleFunc("/secret", secret)
 	fmt.Println("Running...")
 	http.ListenAndServe(":8080", nil)
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
 	user := getUserByCookie(w, r)
-	fmt.Println(user)
 	template, _ := template.ParseFiles("./tmpls/index.html")
 	template.Execute(w, user)
-	fmt.Println(getUserByCookie(w, r))
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
@@ -66,10 +66,20 @@ func login(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("Wrong Pass"))
 			return
 		} else {
-			addSession(w, r, user)
+			addSessionToDB(w, r, user)
 			w.Write([]byte("Welcome"))
 		}
 	}
+}
+
+func logout(w http.ResponseWriter, r *http.Request) {
+	user := getUserByCookie(w, r)
+	if user.ID == 0 {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+	db, _ := sql.Open("sqlite3", "./db/database.db")
+	db.Exec("DELETE FROM sessions WHERE user_id = $1", user.ID)
 }
 
 func signup(w http.ResponseWriter, r *http.Request) {
@@ -86,26 +96,37 @@ func signup(w http.ResponseWriter, r *http.Request) {
 		}
 		err := checkNewUser(user)
 		if err == "" {
-			addUser(user)
-			addSession(w, r, user)
+			addUserToDB(user)
+			addSessionToDB(w, r, user)
 		} else {
 			w.Write([]byte(err))
 		}
 	}
 }
 
-func addSession(w http.ResponseWriter, r *http.Request, user User) {
+func secret(w http.ResponseWriter, r *http.Request) {
+	user := getUserByCookie(w, r)
+	if user.Role == "user" {
+		w.Write([]byte("ok"))
+	} else {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+	}
+}
+
+func addSessionToDB(w http.ResponseWriter, r *http.Request, user User) {
+	db, _ := sql.Open("sqlite3", "./db/database.db")
+	db.Exec("DELETE FROM sessions WHERE user_id = $1", user.ID)
+
 	sessionID, _ := uuid.NewV4()
 	cookie := &http.Cookie{
 		Name:  "session",
 		Value: sessionID.String(),
 	}
-	cookie.MaxAge = 30
+	cookie.MaxAge = 60 * 60 * 24 // 24 hours
 	http.SetCookie(w, cookie)
 
-	db, _ := sql.Open("sqlite3", "./db/database.db")
 	add, _ := db.Prepare("INSERT INTO sessions (user_id, uuid, date) VALUES (?, ?, ?)")
-	add.Exec(user.ID, sessionID, time.Now())
+	add.Exec(user.ID, sessionID, time.Now().Add(24*time.Hour))
 }
 
 func checkNewUser(user User) string {
@@ -122,10 +143,11 @@ func checkNewUser(user User) string {
 	if c.Email != "" {
 		return "E-mail is already in use, please try again!"
 	}
+
 	return ""
 }
 
-func addUser(user User) {
+func addUserToDB(user User) {
 	db, _ := sql.Open("sqlite3", "./db/database.db")
 	add, _ := db.Prepare("INSERT INTO users (username, password, email, role) VALUES (?, ?, ?, ?)")
 	user.Password = encryptPass(user)
@@ -133,7 +155,6 @@ func addUser(user User) {
 }
 
 func getUserByCookie(w http.ResponseWriter, req *http.Request) User {
-
 	userCookie, err := req.Cookie("session")
 	if err != nil {
 		sessionID, _ := uuid.NewV4()
@@ -142,16 +163,21 @@ func getUserByCookie(w http.ResponseWriter, req *http.Request) User {
 			Value: sessionID.String(),
 		}
 	}
-	userCookie.MaxAge = 30
+	userCookie.MaxAge = 60 * 60 * 24
 	http.SetCookie(w, userCookie)
 
-	db, _ := sql.Open("sqlite3", "./db/database.db")
-	data := db.QueryRow("SELECT * FROM sessions WHERE uuid = $1", userCookie.Value)
-	var session Session
-	data.Scan(&session.UserID, &session.UUID, &session.Date)
+	session := getSessionByUUID(userCookie.Value)
 	user := getUserByID(session.UserID)
 
 	return user
+}
+
+func getSessionByUUID(uuid string) Session {
+	db, _ := sql.Open("sqlite3", "./db/database.db")
+	data := db.QueryRow("SELECT * FROM sessions WHERE uuid = $1", uuid)
+	var session Session
+	data.Scan(&session.UserID, &session.UUID, &session.Date)
+	return session
 }
 
 func getUserByID(id int) User {
@@ -159,6 +185,7 @@ func getUserByID(id int) User {
 	data := db.QueryRow("SELECT * FROM users WHERE id = $1", id)
 	var user User
 	data.Scan(&user.ID, &user.Username, &user.Password, &user.Email, &user.Role, &user.Avatar)
+
 	return user
 }
 
@@ -167,12 +194,14 @@ func getUserByName(username string) User {
 	data := db.QueryRow("SELECT * FROM users WHERE username = $1", username)
 	var user User
 	data.Scan(&user.ID, &user.Username, &user.Password, &user.Email, &user.Role, &user.Avatar)
+
 	return user
 }
 
 func encryptPass(user User) string {
 	salt := user.Email + user.Username
 	encryptedPass, _ := bcrypt.GenerateFromPassword([]byte(salt+user.Password+salt), bcrypt.MinCost)
+
 	return string(encryptedPass)
 }
 
@@ -232,4 +261,12 @@ func createDB() {
 		fmt.Println(err.Error())
 	}
 	comments.Exec()
+}
+
+func cleanExpiredSessions() {
+	db, _ := sql.Open("sqlite3", "./db/database.db")
+	for {
+		db.Exec("DELETE FROM sessions WHERE date < $1", time.Now())
+		time.Sleep(10 * time.Minute)
+	}
 }
