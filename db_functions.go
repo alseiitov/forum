@@ -26,11 +26,10 @@ func initDB() {
 		`	CREATE TABLE IF NOT EXISTS posts (
 			id			INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
 			title		TEXT NOT NULL,
-			image		TEXT,
 			author		INTEGER NOT NULL,
-			data		TEXT,
+			data		TEXT NOT NULL,
 			date		DATETIME,
-			likes		INTEGER
+			image		TEXT
 		)`,
 
 		`	CREATE	TABLE IF NOT EXISTS comments (
@@ -56,6 +55,12 @@ func initDB() {
 			post_id			INTEGER,
 			categorie_id	INTEGER
 		)`,
+
+		`	CREATE TABLE IF NOT EXISTS likes (
+			post_id			INTEGER NOT NULL,
+			author_id		INTEGER NOT NULL,
+			type			TEXT	NOT NULL
+		)`,
 	}
 
 	for _, table := range tablesForDB {
@@ -74,6 +79,37 @@ func createDB(table string) {
 		fmt.Println(err.Error())
 	}
 	stmt.Exec()
+}
+
+func fillWithSomeData() {
+	db, _ := sql.Open("sqlite3", "./db/database.db")
+	defer db.Close()
+
+	user, _ := db.Prepare("INSERT INTO users (username, password, email, role, avatar) VALUES (?, ?, ?, ?, ?)")
+	defer user.Close()
+	user.Exec("admin", "$2a$04$Jo85X2JGUOFmF9flUnPhpeTNv6X8AWPUcKtoF4kcHgJBAU3vm3sEi", "aaa@aaa.com", "admin", "/images/avatars/avatar.jpg")
+	user.Exec("user", "$2a$04$f9zX9hgA8c3wEwcJJAMDIOwBr1L.tV97tdBuPc02Rq1xucbtVBA16", "user@user.com", "user", "/images/avatars/avatar.jpg")
+
+	post, _ := db.Prepare("INSERT INTO posts (title, author, data, date, image) VALUES (?, ?, ?, ?, ?)")
+	defer post.Close()
+	post.Exec("Title", 1, "Lorem ipsum", time.Now(), nil)
+
+	categorie, _ := db.Prepare("INSERT INTO categories (name) VALUES (?)")
+	defer categorie.Close()
+	categorie.Exec("Music")
+
+	postscategories, _ := db.Prepare("INSERT INTO posts_categories (post_id, categorie_id) VALUES (?, ?)")
+	defer postscategories.Close()
+	postscategories.Exec(1, 1)
+
+	comment, _ := db.Prepare("INSERT INTO comments (author_id, post_id, data, date) VALUES (?, ?, ?, ?)")
+	defer comment.Close()
+	comment.Exec(1, 1, "comment", time.Now())
+
+	like, _ := db.Prepare("INSERT INTO likes (post_id, author_id, type) VALUES (?, ?, ?)")
+	defer like.Close()
+	like.Exec(1, 1, "like")
+	like.Exec(1, 1, "dislike")
 }
 
 func cleanExpiredSessions() {
@@ -175,7 +211,7 @@ func getPostByID(ID int) Post {
 	row := db.QueryRow("SELECT * FROM posts WHERE id = $1", ID)
 
 	var p Post
-	row.Scan(&p.ID, &p.Title, &p.Image, &p.AuthorID, &p.Data, &p.Date, &p.Likes)
+	row.Scan(&p.ID, &p.Title, &p.AuthorID, &p.Data, &p.Date, &p.Image)
 	author := getUserByID(p.AuthorID)
 	p.AuthorUsername = author.Username
 
@@ -193,8 +229,8 @@ func getCommentsByPostID(ID int) []Comment {
 	for rows.Next() {
 		var c Comment
 		rows.Scan(&c.ID, &c.AuthorID, &c.PostID, &c.Data, &c.Date)
-		author := getUserByID(c.AuthorID)
-		c.AuthorUsername = author.Username
+		c.AuthorUsername = getUserByID(c.AuthorID).Username
+		c.PostTitle = getPostByID(ID).Title
 		comments = append(comments, c)
 	}
 	return comments
@@ -210,7 +246,7 @@ func getPostsByUserID(ID int) []Post {
 	var posts []Post
 	for rows.Next() {
 		var p Post
-		rows.Scan(&p.ID, &p.Title, &p.Image, &p.AuthorID, &p.Data, &p.Date, &p.Likes)
+		rows.Scan(&p.ID, &p.Title, &p.Image, &p.AuthorID, &p.Data, &p.Date)
 		p.AuthorUsername = getUserByID(p.AuthorID).Username
 		posts = append(posts, p)
 	}
@@ -229,7 +265,26 @@ func getCommentsByUserID(ID int) []Comment {
 		var c Comment
 		rows.Scan(&c.ID, &c.AuthorID, &c.PostID, &c.Data, &c.Date)
 		c.AuthorUsername = getUserByID(c.AuthorID).Username
+		c.PostTitle = getPostByID(ID).Title
 		comments = append(comments, c)
 	}
 	return comments
+}
+
+func getLikesByUserID(ID int) []Like {
+	db, _ := sql.Open("sqlite3", "./db/database.db")
+	defer db.Close()
+
+	rows, _ := db.Query("SELECT * FROM likes WHERE author_id = $1", ID)
+	defer rows.Close()
+
+	var likes []Like
+	for rows.Next() {
+		var l Like
+		rows.Scan(&l.PostID, &l.AuthorID, &l.Type)
+		l.AuthorUsername = getUserByID(ID).Username
+		l.PostTitle = getPostByID(l.PostID).Title
+		likes = append(likes, l)
+	}
+	return likes
 }

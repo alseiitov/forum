@@ -13,8 +13,10 @@
         <div class="info">
             Username: {{.Profile.Username}} <br>
             E-mail: {{.Profile.Email}} <br>
+            Role: {{.Profile.Role}} <br>
         </div>
         <div class="posts">
+            Posts <br>
             {{range .Posts}}
                 <div class="post">
                     <a href="/post/{{.ID}}">{{.Title}}</a>
@@ -22,10 +24,26 @@
             {{end}}
         </div>
         <div class="comments">
+            Comments <br>
             {{range .Comments}}
             <div class="comment">
-                <a href="/posts/{{.PostID}}">{{.Data}}</a>
+                <a href="/post/{{.PostID}}">{{.PostTitle}}</a>
+                {{.Date}} <br>
+                {{.Data}} <br>
             </div>
+            {{end}}
+        </div>
+        <div class="likes">
+            {{range .Likes}}
+                <div class="like">
+                {{if eq .Type "like"}}
+                    Liked
+                {{end}}
+                {{if eq .Type "dislike"}}
+                    Disiked
+                {{end}}
+                <a href="/post/.PostID">{{.PostTitle}}</a>
+                </div>
             {{end}}
         </div>
     </div>

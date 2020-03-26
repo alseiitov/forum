@@ -6,6 +6,10 @@ import (
 )
 
 func main() {
+	// os.Remove("./db/database.db")
+	// initDB()
+	// fillWithSomeData()
+
 	initDB()
 	go cleanExpiredSessions()
 

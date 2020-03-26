@@ -30,7 +30,8 @@ type Post struct {
 	AuthorUsername string
 	Data           string
 	Date           time.Time
-	Likes          int
+	Likes          []Like
+	Dislikes       []Like
 }
 
 type Comment struct {
@@ -38,8 +39,17 @@ type Comment struct {
 	AuthorID       int
 	AuthorUsername string
 	PostID         int
+	PostTitle      string
 	Data           string
 	Date           time.Time
+}
+
+type Like struct {
+	PostID         int
+	PostTitle      string
+	AuthorID       int
+	AuthorUsername string
+	Type           string
 }
 
 type IndexPage struct {
@@ -63,4 +73,5 @@ type ProfilePage struct {
 	Profile  User
 	Posts    []Post
 	Comments []Comment
+	Likes    []Like
 }

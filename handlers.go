@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"html/template"
 	"net/http"
 	"strconv"
@@ -110,6 +111,7 @@ func post(w http.ResponseWriter, r *http.Request) {
 	data.Post = getPostByID(ID)
 	data.Comments = getCommentsByPostID(ID)
 
+	fmt.Println(data.Post.Data)
 	tmpls.ExecuteTemplate(w, "post", data)
 }
 
@@ -126,6 +128,7 @@ func user(w http.ResponseWriter, r *http.Request) {
 	data.Profile = getUserByID(ID)
 	data.Posts = getPostsByUserID(ID)
 	data.Comments = getCommentsByUserID(ID)
+	data.Likes = getLikesByUserID(ID)
 
 	tmpls.ExecuteTemplate(w, "user", data)
 }
