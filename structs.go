@@ -29,7 +29,6 @@ type Post struct {
 	AuthorID       int
 	AuthorUsername string
 	Data           string
-	Categorie      string
 	Date           time.Time
 	Likes          int
 }
@@ -61,6 +60,7 @@ type PostPage struct {
 }
 type ProfilePage struct {
 	User     User
+	Profile  User
 	Posts    []Post
 	Comments []Comment
 }

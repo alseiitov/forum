@@ -11,13 +11,14 @@
     <div>     
         {{ if eq .User.Role "user" "admin" "moderator" }}
             Welcome {{ .User.Username }}
+            <img src="{{.User.Avatar}}">
         {{ end }}
     </div>
 
     <div class="categories">
         {{ range .Categories }}
             <div class="categorie">
-                <a href="/forum/{{.ID}}">{{.Name}}</a>
+                <a href="/categorie/{{.ID}}">{{.Name}}</a>
             </div>
         {{ end }}
     </div>

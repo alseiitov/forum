@@ -2,11 +2,9 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"html/template"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -22,6 +20,10 @@ func index(w http.ResponseWriter, r *http.Request) {
 
 func login(w http.ResponseWriter, r *http.Request) {
 	user := getUserByCookie(w, r)
+	if user.ID != 0 {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
 	switch r.Method {
 	case "GET":
 		tmpls.ExecuteTemplate(w, "login", user)
@@ -53,6 +55,10 @@ func logout(w http.ResponseWriter, r *http.Request) {
 
 func signup(w http.ResponseWriter, r *http.Request) {
 	user := getUserByCookie(w, r)
+	if user.ID != 0 {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
 	switch r.Method {
 	case "GET":
 		tmpls.ExecuteTemplate(w, "signup", user)
@@ -60,7 +66,7 @@ func signup(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		user := User{
 			Username: r.FormValue("username"),
-			Password: r.FormValue("password2"),
+			Password: r.FormValue("password"),
 			Email:    r.FormValue("email"),
 		}
 		err := checkNewUser(user)
@@ -74,37 +80,52 @@ func signup(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func secret(w http.ResponseWriter, r *http.Request) {
+func categorie(w http.ResponseWriter, r *http.Request) {
 	user := getUserByCookie(w, r)
-	if user.Role == "user" {
-		w.Write([]byte("ok"))
-	} else {
+	ID, err := strconv.Atoi(r.URL.Path[11:])
+	if err != nil || ID <= 0 {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
 	}
+
+	var data CategoriePage
+	data.ID = ID
+	data.User = user
+	data.Name = getCategorieName(ID)
+	data.Posts = getPostsByCategorieID(ID)
+
+	tmpls.ExecuteTemplate(w, "categorie", data)
 }
 
-func forum(w http.ResponseWriter, r *http.Request) {
-	path := strings.Split(r.URL.Path[7:], "/")
-	fmt.Println(path)
+func post(w http.ResponseWriter, r *http.Request) {
 	user := getUserByCookie(w, r)
-	switch len(path) {
-	case 1:
-		var data CategoriePage
-		ID, _ := strconv.Atoi(path[0])
-		data.ID = ID
-		data.Name = getCategorieName(ID)
-		data.User = getUserByCookie(w, r)
-		data.Posts = getPostsByCategorieID(ID)
-
-		tmpls.ExecuteTemplate(w, "categorie", data)
-	case 2:
-		var data PostPage
-		ID, _ := strconv.Atoi(path[1])
-		data.User = user
-		data.Post = getPostByID(ID)
-		data.Comments = getCommentsByPostID(ID)
-
-		tmpls.ExecuteTemplate(w, "post", data)
-	default:
+	ID, err := strconv.Atoi(r.URL.Path[6:])
+	if err != nil || ID <= 0 {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
 	}
+
+	var data PostPage
+	data.User = user
+	data.Post = getPostByID(ID)
+	data.Comments = getCommentsByPostID(ID)
+
+	tmpls.ExecuteTemplate(w, "post", data)
+}
+
+func user(w http.ResponseWriter, r *http.Request) {
+	user := getUserByCookie(w, r)
+	ID, err := strconv.Atoi(r.URL.Path[6:])
+	if err != nil || ID <= 0 {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	var data ProfilePage
+	data.User = user
+	data.Profile = getUserByID(ID)
+	data.Posts = getPostsByUserID(ID)
+	data.Comments = getCommentsByUserID(ID)
+
+	tmpls.ExecuteTemplate(w, "user", data)
 }

@@ -1,0 +1,34 @@
+{{ define "user" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Profile.Username}}</title>
+</head>
+<body>
+    {{template "header" .User}}
+    <div class="profile">
+        <div class="avatar"><img src="{{.Profile.Avatar}}"></div>
+        <div class="info">
+            Username: {{.Profile.Username}} <br>
+            E-mail: {{.Profile.Email}} <br>
+        </div>
+        <div class="posts">
+            {{range .Posts}}
+                <div class="post">
+                    <a href="/post/{{.ID}}">{{.Title}}</a>
+                </div>
+            {{end}}
+        </div>
+        <div class="comments">
+            {{range .Comments}}
+            <div class="comment">
+                <a href="/posts/{{.PostID}}">{{.Data}}</a>
+            </div>
+            {{end}}
+        </div>
+    </div>
+</body>
+</html>
+{{ end }}

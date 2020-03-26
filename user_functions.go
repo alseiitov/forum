@@ -10,6 +10,8 @@ import (
 
 func checkNewUser(user User) string {
 	db, _ := sql.Open("sqlite3", "./db/database.db")
+	defer db.Close()
+
 	username := db.QueryRow("SELECT username FROM users WHERE username = $1", user.Username)
 	email := db.QueryRow("SELECT email FROM users WHERE email = $1", user.Email)
 	c := User{}
@@ -50,6 +52,8 @@ func getUserByCookie(w http.ResponseWriter, req *http.Request) User {
 
 func getSessionByUUID(uuid string) Session {
 	db, _ := sql.Open("sqlite3", "./db/database.db")
+	defer db.Close()
+
 	data := db.QueryRow("SELECT * FROM sessions WHERE uuid = $1", uuid)
 	var session Session
 	data.Scan(&session.UserID, &session.UUID, &session.Date)
@@ -58,6 +62,8 @@ func getSessionByUUID(uuid string) Session {
 
 func getUserByID(id int) User {
 	db, _ := sql.Open("sqlite3", "./db/database.db")
+	defer db.Close()
+
 	data := db.QueryRow("SELECT * FROM users WHERE id = $1", id)
 	var user User
 	data.Scan(&user.ID, &user.Username, &user.Password, &user.Email, &user.Role, &user.Avatar)
@@ -67,6 +73,8 @@ func getUserByID(id int) User {
 
 func getUserByName(username string) User {
 	db, _ := sql.Open("sqlite3", "./db/database.db")
+	defer db.Close()
+
 	data := db.QueryRow("SELECT * FROM users WHERE username = $1", username)
 	var user User
 	data.Scan(&user.ID, &user.Username, &user.Password, &user.Email, &user.Role, &user.Avatar)

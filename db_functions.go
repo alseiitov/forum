@@ -10,6 +10,8 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+var defaultAvatar = "/images/avatars/avatar.jpg"
+
 func initDB() {
 	tablesForDB := []string{
 		`	CREATE TABLE IF NOT EXISTS users (
@@ -27,7 +29,6 @@ func initDB() {
 			image		TEXT,
 			author		INTEGER NOT NULL,
 			data		TEXT,
-			categorie	TEXT NOT NULL,
 			date		DATETIME,
 			likes		INTEGER
 		)`,
@@ -49,6 +50,11 @@ func initDB() {
 		`	CREATE TABLE IF NOT EXISTS categories (
 			id			INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
 			name		TEXT NOT NULL
+		)`,
+
+		`	CREATE TABLE IF NOT EXISTS posts_categories (
+			post_id			INTEGER,
+			categorie_id	INTEGER
 		)`,
 	}
 
@@ -104,11 +110,14 @@ func addUserToDB(user User) {
 	db, _ := sql.Open("sqlite3", "./db/database.db")
 	defer db.Close()
 
-	add, _ := db.Prepare("INSERT INTO users (username, password, email, role) VALUES (?, ?, ?, ?)")
+	add, _ := db.Prepare("INSERT INTO users (username, password, email, role, avatar) VALUES (?, ?, ?, ?, ?)")
 	defer add.Close()
 
 	user.Password = encryptPass(user)
-	add.Exec(user.Username, user.Password, user.Email, "user")
+	user.Role = "user"
+	user.Avatar = defaultAvatar
+
+	add.Exec(user.Username, user.Password, user.Email, user.Role, defaultAvatar)
 }
 
 func getCategoriesList() []Categorie {
@@ -143,16 +152,18 @@ func getPostsByCategorieID(ID int) []Post {
 	db, _ := sql.Open("sqlite3", "./db/database.db")
 	defer db.Close()
 
-	rows, _ := db.Query("SELECT * FROM posts WHERE categorie = $1", ID)
+	rows, _ := db.Query("SELECT post_id FROM posts_categories WHERE categorie_id = $1", ID)
 	defer rows.Close()
 
 	var posts []Post
 	for rows.Next() {
-		var p Post
-		rows.Scan(&p.ID, &p.Title, &p.Image, &p.AuthorID, &p.Data, &p.Categorie, &p.Date, &p.Likes)
-		author := getUserByID(p.AuthorID)
-		p.AuthorUsername = author.Username
-		posts = append(posts, p)
+		var postID int
+		rows.Scan(&postID)
+
+		post := getPostByID(postID)
+		post.AuthorUsername = getUserByID(post.AuthorID).Username
+
+		posts = append(posts, post)
 	}
 	return posts
 }
@@ -164,7 +175,7 @@ func getPostByID(ID int) Post {
 	row := db.QueryRow("SELECT * FROM posts WHERE id = $1", ID)
 
 	var p Post
-	row.Scan(&p.ID, &p.Title, &p.Image, &p.AuthorID, &p.Data, &p.Categorie, &p.Date, &p.Likes)
+	row.Scan(&p.ID, &p.Title, &p.Image, &p.AuthorID, &p.Data, &p.Date, &p.Likes)
 	author := getUserByID(p.AuthorID)
 	p.AuthorUsername = author.Username
 
@@ -184,6 +195,40 @@ func getCommentsByPostID(ID int) []Comment {
 		rows.Scan(&c.ID, &c.AuthorID, &c.PostID, &c.Data, &c.Date)
 		author := getUserByID(c.AuthorID)
 		c.AuthorUsername = author.Username
+		comments = append(comments, c)
+	}
+	return comments
+}
+
+func getPostsByUserID(ID int) []Post {
+	db, _ := sql.Open("sqlite3", "./db/database.db")
+	defer db.Close()
+
+	rows, _ := db.Query("SELECT * FROM posts WHERE author = $1", ID)
+	defer rows.Close()
+
+	var posts []Post
+	for rows.Next() {
+		var p Post
+		rows.Scan(&p.ID, &p.Title, &p.Image, &p.AuthorID, &p.Data, &p.Date, &p.Likes)
+		p.AuthorUsername = getUserByID(p.AuthorID).Username
+		posts = append(posts, p)
+	}
+	return posts
+}
+
+func getCommentsByUserID(ID int) []Comment {
+	db, _ := sql.Open("sqlite3", "./db/database.db")
+	defer db.Close()
+
+	rows, _ := db.Query("SELECT * FROM comments WHERE author_id = $1", ID)
+	defer rows.Close()
+
+	var comments []Comment
+	for rows.Next() {
+		var c Comment
+		rows.Scan(&c.ID, &c.AuthorID, &c.PostID, &c.Data, &c.Date)
+		c.AuthorUsername = getUserByID(c.AuthorID).Username
 		comments = append(comments, c)
 	}
 	return comments
