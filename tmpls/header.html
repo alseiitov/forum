@@ -8,13 +8,14 @@
     </div>
     <div class="user">
         {{ if eq .Role "guest" }}
-            <a href="/login">LOG IN</a>
-            <a href="/signup">SIGN UP</a>
+        <a href="/login">LOG IN</a>
+        <a href="/signup">SIGN UP</a>
         {{ end }}
 
         {{ if eq .Role "user" "admin" "moderator" }}
-              <a href="/user/{{ .ID }}">{{ .Username }}</a>
-              <a href="/logout">LOG OUT</a>
+        <a href="/newpost">New post</a>
+        <a href="/user/{{ .ID }}">{{ .Username }}</a>
+        <a href="/logout">LOG OUT</a>
         {{ end }}
     </div>
 </header>

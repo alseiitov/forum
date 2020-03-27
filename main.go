@@ -6,11 +6,8 @@ import (
 )
 
 func main() {
-	// os.Remove("./db/database.db")
-	// initDB()
-	// fillWithSomeData()
-
 	initDB()
+	// fillWithSomeData()
 	go cleanExpiredSessions()
 
 	images := http.FileServer(http.Dir("./db/images"))
@@ -25,6 +22,7 @@ func main() {
 	http.HandleFunc("/categorie/", categorie)
 	http.HandleFunc("/post/", post)
 	http.HandleFunc("/user/", user)
+	http.HandleFunc("/newpost", newPost)
 
 	fmt.Println("Running...")
 	fmt.Println(http.ListenAndServe(":8080", nil))

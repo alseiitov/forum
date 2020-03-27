@@ -288,3 +288,21 @@ func getLikesByUserID(ID int) []Like {
 	}
 	return likes
 }
+
+func addPostToDB(post Post, categories []int) int64 {
+	db, _ := sql.Open("sqlite3", "./db/database.db")
+	defer db.Close()
+
+	add, _ := db.Prepare("INSERT INTO posts (title, author, data, date, image) VALUES (?, ?, ?, ?, ?)")
+	defer add.Close()
+	add.Exec(post.Title, post.AuthorID, post.Data, post.Date, post.Image)
+	last, _ := db.Exec(`SELECT last_insert_rowid();`)
+	id, _ := last.LastInsertId()
+
+	for _, cat := range categories {
+		addCat, _ := db.Prepare("INSERT INTO posts_categories (post_id, categorie_id) VALUES (?, ?)")
+		defer addCat.Close()
+		addCat.Exec(id, cat)
+	}
+	return id
+}

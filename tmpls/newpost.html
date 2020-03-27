@@ -1,14 +1,36 @@
 {{ define "newpost" }}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>New post</title>
 </head>
+
 <body>
     {{template "header" .User}}
-    
+    <div>
+        <form method="post" enctype="multipart/form-data">
+            <input type="file" name="image" accept="image/*"> <br>
+            <input type="text" name="title" maxlength="30" required> <br>
+            <select name="categorie1" required>
+                <option value="0" selected>None</option>
+                {{range .Categories}}
+                <option value="{{.ID}}">{{.Name}}</option>
+                {{end}}
+            </select>
+            <select name="categorie2">
+                <option value="0" selected>None</option>
+                {{range .Categories}}
+                <option value="{{.ID}}">{{.Name}}</option>
+                {{end}}
+            </select>
+            <textarea name="data" cols="30" rows="10" required></textarea> <br>
+            <input type="submit" value="Upload">
+        </form>
+    </div>
 </body>
+
 </html>
 {{ end }}

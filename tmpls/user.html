@@ -1,11 +1,13 @@
 {{ define "user" }}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{.Profile.Username}}</title>
 </head>
+
 <body>
     {{template "header" .User}}
     <div class="profile">
@@ -18,9 +20,9 @@
         <div class="posts">
             Posts <br>
             {{range .Posts}}
-                <div class="post">
-                    <a href="/post/{{.ID}}">{{.Title}}</a>
-                </div>
+            <div class="post">
+                <a href="/post/{{.ID}}">{{.Title}}</a>
+            </div>
             {{end}}
         </div>
         <div class="comments">
@@ -35,18 +37,19 @@
         </div>
         <div class="likes">
             {{range .Likes}}
-                <div class="like">
+            <div class="like">
                 {{if eq .Type "like"}}
-                    Liked
+                Liked
                 {{end}}
                 {{if eq .Type "dislike"}}
-                    Disiked
+                Disiked
                 {{end}}
                 <a href="/post/.PostID">{{.PostTitle}}</a>
-                </div>
+            </div>
             {{end}}
         </div>
     </div>
 </body>
+
 </html>
 {{ end }}

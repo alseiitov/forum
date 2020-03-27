@@ -2,10 +2,10 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"html/template"
 	"net/http"
 	"strconv"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -64,7 +64,6 @@ func signup(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		tmpls.ExecuteTemplate(w, "signup", user)
 	case "POST":
-		r.ParseForm()
 		user := User{
 			Username: r.FormValue("username"),
 			Password: r.FormValue("password"),
@@ -111,7 +110,6 @@ func post(w http.ResponseWriter, r *http.Request) {
 	data.Post = getPostByID(ID)
 	data.Comments = getCommentsByPostID(ID)
 
-	fmt.Println(data.Post.Data)
 	tmpls.ExecuteTemplate(w, "post", data)
 }
 
@@ -131,4 +129,43 @@ func user(w http.ResponseWriter, r *http.Request) {
 	data.Likes = getLikesByUserID(ID)
 
 	tmpls.ExecuteTemplate(w, "user", data)
+}
+
+func newPost(w http.ResponseWriter, r *http.Request) {
+	user := getUserByCookie(w, r)
+	if user.ID == 0 {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	switch r.Method {
+	case "GET":
+		var data newPostPage
+		data.User = user
+		data.Categories = getCategoriesList()
+		tmpls.ExecuteTemplate(w, "newpost", data)
+	case "POST":
+		path, err := saveImage(r)
+		if err != nil && err.Error() != "http: no such file" {
+			w.Write([]byte(err.Error()))
+			return
+		}
+
+		post := Post{
+			AuthorID: user.ID,
+			Title:    r.FormValue("title"),
+			Data:     r.FormValue("data"),
+			Date:     time.Now(),
+			Image:    path,
+		}
+
+		categories, err := getNewPostCategories(r)
+		if err != nil {
+			http.Error(w, err.Error(), 400)
+			return
+		}
+
+		id := strconv.Itoa(int(addPostToDB(post, categories)))
+		http.Redirect(w, r, "/post/"+id, http.StatusSeeOther)
+	}
 }

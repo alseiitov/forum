@@ -75,3 +75,8 @@ type ProfilePage struct {
 	Comments []Comment
 	Likes    []Like
 }
+
+type newPostPage struct {
+	User       User
+	Categories []Categorie
+}

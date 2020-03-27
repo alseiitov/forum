@@ -1,28 +1,31 @@
 {{ define "index" }}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Forum</title>
 </head>
+
 <body>
     {{ template "header" .User }}
-    <div>     
+    <div>
         {{ if eq .User.Role "user" "admin" "moderator" }}
-            Welcome {{ .User.Username }}
-            <img src="{{.User.Avatar}}">
+        Welcome {{ .User.Username }}
+        <img src="{{.User.Avatar}}">
         {{ end }}
     </div>
 
     <div class="categories">
         {{ range .Categories }}
-            <div class="categorie">
-                <a href="/categorie/{{.ID}}">{{.Name}}</a>
-            </div>
+        <div class="categorie">
+            <a href="/categorie/{{.ID}}">{{.Name}}</a>
+        </div>
         {{ end }}
     </div>
 
 </body>
+
 </html>
 {{ end }}
