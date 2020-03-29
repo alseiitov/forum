@@ -36,9 +36,9 @@ func getUserByCookie(w http.ResponseWriter, req *http.Request) User {
 			Name:  "session",
 			Value: sessionID.String(),
 		}
+		userCookie.MaxAge = 60 * 60 * 24
+		http.SetCookie(w, userCookie)
 	}
-	userCookie.MaxAge = 60 * 60 * 24
-	http.SetCookie(w, userCookie)
 
 	session := getSessionByUUID(userCookie.Value)
 	user := getUserByID(session.UserID)

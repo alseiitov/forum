@@ -6,6 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{.Post.Title}}</title>
+    <script src="https://kit.fontawesome.com/00f6ec1551.js" crossorigin="anonymous"></script>
 </head>
 
 <body>
@@ -24,6 +25,25 @@
         <div class="data">
             {{.Post.Data}}
         </div>
+        <div class="likes">
+            {{ if eq .User.Role "user" "admin" "moderator" }}
+            <a href="/like">
+                <i class="far fa-thumbs-up"></i>
+            </a>
+            {{else}}
+            <i class="far fa-thumbs-up"></i>
+            {{end}}
+            {{ len .Post.Likes }} <br>
+
+            {{ if eq .User.Role "user" "admin" "moderator" }}
+            <a href="/dislike">
+                <i class="far fa-thumbs-down"></i>
+            </a>
+            {{else}}
+            <i class="far fa-thumbs-down"></i>
+            {{end}}
+            {{ len .Post.Likes }} <br>
+        </div>
         <div class="comments">
             {{range .Comments}}
             <div class="comment">
@@ -33,6 +53,14 @@
             </div>
             {{end}}
         </div>
+        {{ if eq .User.Role "user" "admin" "moderator" }}
+        <div class="comment-form">
+            <form method="post">
+                <textarea name="comment" cols="30" rows="10" maxlength="300"></textarea>
+                <input type="submit" value="Send">
+            </form>
+        </div>
+        {{end}}
     </div>
 </body>
 

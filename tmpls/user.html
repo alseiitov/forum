@@ -9,7 +9,7 @@
 </head>
 
 <body>
-    {{template "header" .User}}
+    {{ template "header" .User }}
     <div class="profile">
         <div class="avatar"><img src="{{.Profile.Avatar}}"></div>
         <div class="info">
@@ -36,15 +36,30 @@
             {{end}}
         </div>
         <div class="likes">
-            {{range .Likes}}
-            <div class="like">
+            Liked posts <br>
+            {{range .PostLikes}}
+            <div class="postlike">
                 {{if eq .Type "like"}}
                 Liked
                 {{end}}
                 {{if eq .Type "dislike"}}
-                Disiked
+                Disliked
                 {{end}}
                 <a href="/post/.PostID">{{.PostTitle}}</a>
+            </div>
+            {{end}}
+            Liked comments: <br>
+            {{range .CommentLikes}}
+            <div class="commentlike">
+                {{if eq .Type "like"}}
+                Liked
+                {{end}}
+                {{if eq .Type "dislike"}}
+                Disliked
+                {{end}}
+                <a href="/user/.Comment.AuthorID">{{.AuthorUsername}}</a> <br>
+                {{.Comment.Data}} <br>
+                <a href="/post/{{.Comment.PostID}}">{{.Comment.PostTitle}}</a>
             </div>
             {{end}}
         </div>

@@ -21,7 +21,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 
 func login(w http.ResponseWriter, r *http.Request) {
 	user := getUserByCookie(w, r)
-	if user.ID != 0 {
+	if user.Role != "guest" {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
@@ -45,18 +45,26 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 func logout(w http.ResponseWriter, r *http.Request) {
 	user := getUserByCookie(w, r)
-	if user.ID == 0 {
+	if user.Role == "guest" {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 	db, _ := sql.Open("sqlite3", "./db/database.db")
 	db.Exec("DELETE FROM sessions WHERE user_id = $1", user.ID)
+
+	cookie := &http.Cookie{
+		Name:   "session",
+		Value:  "",
+		MaxAge: -1,
+	}
+	http.SetCookie(w, cookie)
+
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func signup(w http.ResponseWriter, r *http.Request) {
 	user := getUserByCookie(w, r)
-	if user.ID != 0 {
+	if user.Role != "guest" {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
@@ -126,14 +134,15 @@ func user(w http.ResponseWriter, r *http.Request) {
 	data.Profile = getUserByID(ID)
 	data.Posts = getPostsByUserID(ID)
 	data.Comments = getCommentsByUserID(ID)
-	data.Likes = getLikesByUserID(ID)
+	data.PostLikes = getPostsUserLiked(ID)
+	data.CommentLikes = getCommentsUserLiked(ID)
 
 	tmpls.ExecuteTemplate(w, "user", data)
 }
 
 func newPost(w http.ResponseWriter, r *http.Request) {
 	user := getUserByCookie(w, r)
-	if user.ID == 0 {
+	if user.Role == "guest" {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
