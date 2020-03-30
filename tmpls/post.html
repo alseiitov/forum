@@ -27,29 +27,81 @@
         </div>
         <div class="likes">
             {{ if eq .User.Role "user" "admin" "moderator" }}
-            <a href="/like">
+
+            {{if .Post.Liked}}
+            <a href="/likes/like/post/{{.Post.ID}}">
+                <i class="fas fa-thumbs-up"></i>
+            </a>
+            {{else}}
+            <a href="/likes/like/post/{{.Post.ID}}">
                 <i class="far fa-thumbs-up"></i>
             </a>
+            {{end}}
+
             {{else}}
             <i class="far fa-thumbs-up"></i>
             {{end}}
-            {{ len .Post.Likes }} <br>
+            {{ len .Post.Likes }}
+
 
             {{ if eq .User.Role "user" "admin" "moderator" }}
-            <a href="/dislike">
+            {{if .Post.Disliked}}
+            <a href="/likes/dislike/post/{{.Post.ID}}">
+                <i class="fas fa-thumbs-down"></i>
+            </a>
+            {{else}}
+            <a href="/likes/dislike/post/{{.Post.ID}}">
                 <i class="far fa-thumbs-down"></i>
             </a>
+            {{end}}
+
             {{else}}
             <i class="far fa-thumbs-down"></i>
             {{end}}
-            {{ len .Post.Likes }} <br>
+            {{ len .Post.Dislikes }} <br>
         </div>
         <div class="comments">
+            {{$user := .User}}
             {{range .Comments}}
             <div class="comment">
                 <a href="/user/{{.AuthorID}}">{{.AuthorUsername}}</a>
                 {{.Date}}
-                {{.Data}}
+                {{.Data}} <br>
+                <div class="likes">
+                    {{ if eq $user.Role "user" "admin" "moderator" }}
+
+                    {{if .Liked}}
+                    <a href="/likes/like/comment/{{.ID}}">
+                        <i class="fas fa-thumbs-up"></i>
+                    </a>
+                    {{else}}
+                    <a href="/likes/like/comment/{{.ID}}">
+                        <i class="far fa-thumbs-up"></i>
+                    </a>
+                    {{end}}
+
+                    {{else}}
+                    <i class="far fa-thumbs-up"></i>
+                    {{end}}
+                    {{ len .Likes }}
+
+
+                    {{ if eq $user.Role "user" "admin" "moderator" }}
+                    {{if .Disliked}}
+                    <a href="/likes/dislike/comment/{{.ID}}">
+                        <i class="fas fa-thumbs-down"></i>
+                    </a>
+                    {{else}}
+                    <a href="/likes/dislike/comment/{{.ID}}">
+                        <i class="far fa-thumbs-down"></i>
+                    </a>
+                    {{end}}
+
+                    {{else}}
+                    <i class="far fa-thumbs-down"></i>
+                    {{end}}
+                    {{ len .Dislikes }} <br>
+                </div>
             </div>
             {{end}}
         </div>

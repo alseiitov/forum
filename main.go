@@ -23,6 +23,7 @@ func main() {
 	http.HandleFunc("/post/", post)
 	http.HandleFunc("/user/", user)
 	http.HandleFunc("/newpost", newPost)
+	http.HandleFunc("/likes/", likes)
 
 	fmt.Println("Running...")
 	fmt.Println(http.ListenAndServe(":8080", nil))

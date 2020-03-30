@@ -35,31 +35,32 @@
             </div>
             {{end}}
         </div>
+        
         <div class="likes">
             Liked posts <br>
-            {{range .PostLikes}}
-            <div class="postlike">
-                {{if eq .Type "like"}}
+            {{range .LikedPosts}}
+            <div class="likedpost">
+                {{if .Liked}}
                 Liked
                 {{end}}
-                {{if eq .Type "dislike"}}
+                {{if .Disliked}}
                 Disliked
                 {{end}}
-                <a href="/post/.PostID">{{.PostTitle}}</a>
+                <a href="/post/{{.ID}}">{{.Title}}</a>
             </div>
             {{end}}
             Liked comments: <br>
-            {{range .CommentLikes}}
-            <div class="commentlike">
-                {{if eq .Type "like"}}
+            {{range .LikedComments}}
+            <div class="likedcomment">
+                {{if .Liked}}
                 Liked
                 {{end}}
-                {{if eq .Type "dislike"}}
+                {{if .Disliked}}
                 Disliked
                 {{end}}
-                <a href="/user/.Comment.AuthorID">{{.AuthorUsername}}</a> <br>
-                {{.Comment.Data}} <br>
-                <a href="/post/{{.Comment.PostID}}">{{.Comment.PostTitle}}</a>
+                <a href="/user/{{.AuthorID}}">{{.AuthorUsername}}</a> <br>
+                {{.Data}} <br>
+                <a href="/post/{{.PostID}}">{{.PostTitle}}</a>
             </div>
             {{end}}
         </div>

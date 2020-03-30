@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -99,7 +100,7 @@ func categorie(w http.ResponseWriter, r *http.Request) {
 	var data CategoriePage
 	data.ID = ID
 	data.User = user
-	data.Name = getCategorieName(ID)
+	data.Name = getCategorieByID(ID).Name
 	data.Posts = getPostsByCategorieID(ID)
 
 	tmpls.ExecuteTemplate(w, "categorie", data)
@@ -113,12 +114,28 @@ func post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var data PostPage
-	data.User = user
-	data.Post = getPostByID(ID)
-	data.Comments = getCommentsByPostID(ID)
+	switch r.Method {
+	case "GET":
+		var data PostPage
+		data.User = user
+		data.Post = getPostByID(user.ID, ID)
+		data.Comments = getCommentsByPostID(user.ID, ID)
 
-	tmpls.ExecuteTemplate(w, "post", data)
+		tmpls.ExecuteTemplate(w, "post", data)
+	case "POST":
+		var comment Comment
+		commentData := r.FormValue("comment")
+		//TODO check comment
+
+		comment.AuthorID = user.ID
+		comment.PostID = ID
+		comment.Data = commentData
+		comment.Date = time.Now()
+
+		addCommentToDB(comment)
+		http.Redirect(w, r, "/post/"+strconv.Itoa(ID), http.StatusSeeOther)
+	}
+
 }
 
 func user(w http.ResponseWriter, r *http.Request) {
@@ -134,8 +151,8 @@ func user(w http.ResponseWriter, r *http.Request) {
 	data.Profile = getUserByID(ID)
 	data.Posts = getPostsByUserID(ID)
 	data.Comments = getCommentsByUserID(ID)
-	data.PostLikes = getPostsUserLiked(ID)
-	data.CommentLikes = getCommentsUserLiked(ID)
+	data.LikedPosts = getPostsUserLiked(ID)
+	data.LikedComments = getCommentsUserLiked(ID)
 
 	tmpls.ExecuteTemplate(w, "user", data)
 }
@@ -176,5 +193,64 @@ func newPost(w http.ResponseWriter, r *http.Request) {
 
 		id := strconv.Itoa(int(addPostToDB(post, categories)))
 		http.Redirect(w, r, "/post/"+id, http.StatusSeeOther)
+	}
+}
+
+func likes(w http.ResponseWriter, r *http.Request) {
+	user := getUserByCookie(w, r)
+	pathArr := strings.Split(r.URL.String(), "/")
+	if len(pathArr) != 5 || user.Role == "guest" {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	likeType := pathArr[2]
+	if likeType != "like" && likeType != "dislike" {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	whatToLike := pathArr[3]
+	if whatToLike != "post" && whatToLike != "comment" {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	ID, err := strconv.Atoi(pathArr[4])
+	if err != nil || ID <= 0 {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	switch whatToLike {
+	case "post":
+		post := getPostByID(user.ID, ID)
+		switch likeType {
+		case "like":
+			if !post.Disliked {
+				if !post.Liked {
+					//add like
+				} else {
+					//del like
+				}
+			} else {
+				//add like
+				//del dislike
+			}
+		case "dislike":
+			if !post.Liked {
+				if !post.Disliked {
+					//add dislike
+				} else {
+					//del dislike
+				}
+			} else {
+				//add dislike
+				//del like
+			}
+		}
+	case "comment":
+		// comment := getCommentByID(ID)
+
 	}
 }

@@ -183,16 +183,16 @@ func getCategoriesList() []Categorie {
 	return categories
 }
 
-func getCategorieName(ID int) string {
+func getCategorieByID(ID int) Categorie {
 	db, _ := sql.Open("sqlite3", "./db/database.db")
 	defer db.Close()
 
-	row := db.QueryRow("SELECT name FROM categories WHERE id = $1", ID)
+	row := db.QueryRow("SELECT * FROM categories WHERE id = $1", ID)
 
-	var name string
-	row.Scan(&name)
+	var c Categorie
+	row.Scan(&c.ID, &c.Name)
 
-	return name
+	return c
 }
 
 func getPostsByCategorieID(ID int) []Post {
@@ -207,7 +207,7 @@ func getPostsByCategorieID(ID int) []Post {
 		var postID int
 		rows.Scan(&postID)
 
-		post := getPostByID(postID)
+		post := getPostByID(0, postID)
 		post.AuthorUsername = getUserByID(post.AuthorID).Username
 
 		posts = append(posts, post)
@@ -215,7 +215,7 @@ func getPostsByCategorieID(ID int) []Post {
 	return posts
 }
 
-func getPostByID(ID int) Post {
+func getPostByID(requesterID int, ID int) Post {
 	db, _ := sql.Open("sqlite3", "./db/database.db")
 	defer db.Close()
 
@@ -224,12 +224,12 @@ func getPostByID(ID int) Post {
 	var p Post
 	row.Scan(&p.ID, &p.Title, &p.AuthorID, &p.Data, &p.Date, &p.Image)
 	p.AuthorUsername = getUserByID(p.AuthorID).Username
-	p.Likes, p.Dislikes = getLikesByPostID(p.ID)
+	p.Likes, p.Dislikes, p.Liked, p.Disliked = getLikesByPostID(requesterID, p.ID)
 
 	return p
 }
 
-func getCommentByID(ID int) Comment {
+func getCommentByID(requesterID int, ID int) Comment {
 	db, _ := sql.Open("sqlite3", "./db/database.db")
 	defer db.Close()
 
@@ -238,24 +238,24 @@ func getCommentByID(ID int) Comment {
 	var c Comment
 	row.Scan(&c.ID, &c.AuthorID, &c.PostID, &c.Data, &c.Date)
 	c.AuthorUsername = getUserByID(c.AuthorID).Username
-	c.PostTitle = getPostByID(c.PostID).Title
+	c.PostTitle = getPostByID(0, c.PostID).Title
+	c.Likes, c.Dislikes, c.Liked, c.Disliked = getLikesByCommentID(requesterID, c.ID)
 
 	return c
 }
 
-func getCommentsByPostID(ID int) []Comment {
+func getCommentsByPostID(requesterID int, ID int) []Comment {
 	db, _ := sql.Open("sqlite3", "./db/database.db")
 	defer db.Close()
 
-	rows, _ := db.Query("SELECT * FROM comments WHERE post_id = $1", ID)
+	rows, _ := db.Query("SELECT id FROM comments WHERE post_id = $1", ID)
 	defer rows.Close()
 
 	var comments []Comment
 	for rows.Next() {
 		var c Comment
-		rows.Scan(&c.ID, &c.AuthorID, &c.PostID, &c.Data, &c.Date)
-		c.AuthorUsername = getUserByID(c.AuthorID).Username
-		c.PostTitle = getPostByID(ID).Title
+		rows.Scan(&c.ID)
+		c = getCommentByID(requesterID, c.ID)
 		comments = append(comments, c)
 	}
 	return comments
@@ -290,47 +290,102 @@ func getCommentsByUserID(ID int) []Comment {
 		var c Comment
 		rows.Scan(&c.ID, &c.AuthorID, &c.PostID, &c.Data, &c.Date)
 		c.AuthorUsername = getUserByID(c.AuthorID).Username
-		c.PostTitle = getPostByID(ID).Title
+		c.PostTitle = getPostByID(0, ID).Title
 		comments = append(comments, c)
 	}
 	return comments
 }
 
-func getPostsUserLiked(ID int) []PostLike {
+func getPostsUserLiked(ID int) []Post {
 	db, _ := sql.Open("sqlite3", "./db/database.db")
 	defer db.Close()
 
-	rows, _ := db.Query("SELECT * FROM posts_likes WHERE author_id = $1", ID)
+	rows, _ := db.Query("SELECT post_id FROM posts_likes WHERE author_id = $1", ID)
 	defer rows.Close()
 
-	var postLikes []PostLike
+	var posts []Post
+	for rows.Next() {
+		var p Post
+		rows.Scan(&p.ID)
+		p = getPostByID(ID, p.ID)
+		posts = append(posts, p)
+	}
+	return posts
+}
+
+func getCommentsUserLiked(ID int) []Comment {
+	db, _ := sql.Open("sqlite3", "./db/database.db")
+	defer db.Close()
+
+	rows, _ := db.Query("SELECT comment_id FROM comments_likes WHERE author_id = $1", ID)
+	defer rows.Close()
+
+	var comments []Comment
+	for rows.Next() {
+		var c Comment
+		rows.Scan(&c.ID)
+		c = getCommentByID(0, c.ID)
+		comments = append(comments, c)
+	}
+	return comments
+}
+
+func getLikesByPostID(requesterID int, ID int) ([]PostLike, []PostLike, bool, bool) {
+	db, _ := sql.Open("sqlite3", "./db/database.db")
+	defer db.Close()
+
+	rows, _ := db.Query("SELECT * FROM posts_likes WHERE post_id = $1", ID)
+	defer rows.Close()
+
+	var Likes, Dislikes []PostLike
+	var Liked, Disliked bool
+
 	for rows.Next() {
 		var l PostLike
 		rows.Scan(&l.PostID, &l.AuthorID, &l.Type)
-		l.AuthorUsername = getUserByID(ID).Username
-		l.PostTitle = getPostByID(l.PostID).Title
-		postLikes = append(postLikes, l)
+		if l.Type == "like" {
+			Likes = append(Likes, l)
+			if l.AuthorID == requesterID {
+				Liked = true
+			}
+		}
+		if l.Type == "dislike" {
+			Dislikes = append(Dislikes, l)
+			if l.AuthorID == requesterID {
+				Disliked = true
+			}
+		}
 	}
-	return postLikes
+	return Likes, Dislikes, Liked, Disliked
 }
 
-func getCommentsUserLiked(ID int) []CommentLike {
+func getLikesByCommentID(requesterID int, ID int) ([]CommentLike, []CommentLike, bool, bool) {
 	db, _ := sql.Open("sqlite3", "./db/database.db")
 	defer db.Close()
 
-	rows, _ := db.Query("SELECT * FROM comments_likes WHERE author_id = $1", ID)
+	rows, _ := db.Query("SELECT * FROM comments_likes WHERE comment_id = $1", ID)
 	defer rows.Close()
 
-	var commentsLikes []CommentLike
+	var Likes, Dislikes []CommentLike
+	var Liked, Disliked bool
+
 	for rows.Next() {
-		var c CommentLike
-		var commentID int
-		rows.Scan(&commentID, &c.AuthorID, &c.Type)
-		c.Comment = getCommentByID(commentID)
-		c.AuthorUsername = getUserByID(ID).Username
-		commentsLikes = append(commentsLikes, c)
+		var l CommentLike
+		rows.Scan(&l.CommentID, &l.AuthorID, &l.Type)
+		if l.Type == "like" {
+			Likes = append(Likes, l)
+			if l.AuthorID == requesterID {
+				Liked = true
+			}
+		}
+		if l.Type == "dislike" {
+			Dislikes = append(Dislikes, l)
+			if l.AuthorID == requesterID {
+				Disliked = true
+			}
+		}
 	}
-	return commentsLikes
+	return Likes, Dislikes, Liked, Disliked
 }
 
 func addPostToDB(post Post, categories []int) int64 {
@@ -351,25 +406,11 @@ func addPostToDB(post Post, categories []int) int64 {
 	return id
 }
 
-func getLikesByPostID(ID int) ([]PostLike, []PostLike) {
+func addCommentToDB(comment Comment) {
 	db, _ := sql.Open("sqlite3", "./db/database.db")
 	defer db.Close()
 
-	rows, _ := db.Query("SELECT * FROM posts_likes WHERE post_id = $1", ID)
-	defer rows.Close()
-
-	var Likes []PostLike
-	var Dislikes []PostLike
-
-	for rows.Next() {
-		var l PostLike
-		rows.Scan(&l.PostID, &l.AuthorID, &l.Type)
-		if l.Type == "like" {
-			Likes = append(Likes, l)
-		}
-		if l.Type == "dislike" {
-			Dislikes = append(Dislikes, l)
-		}
-	}
-	return Likes, Dislikes
+	add, _ := db.Prepare("INSERT INTO comments (author_id, post_id, data, date) VALUES (?, ?, ?, ?)")
+	defer add.Close()
+	add.Exec(comment.AuthorID, comment.PostID, comment.Data, comment.Date)
 }

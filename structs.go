@@ -59,7 +59,8 @@ type PostLike struct {
 }
 
 type CommentLike struct {
-	Comment        Comment
+	// Comment        Comment
+	CommentID      int
 	AuthorID       int
 	AuthorUsername string
 	Type           string
@@ -82,12 +83,12 @@ type PostPage struct {
 	Comments []Comment
 }
 type ProfilePage struct {
-	User         User
-	Profile      User
-	Posts        []Post
-	Comments     []Comment
-	PostLikes    []PostLike
-	CommentLikes []CommentLike
+	User          User
+	Profile       User
+	Posts         []Post
+	Comments      []Comment
+	LikedPosts    []Post
+	LikedComments []Comment
 }
 
 type newPostPage struct {
