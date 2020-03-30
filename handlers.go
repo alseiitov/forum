@@ -80,7 +80,7 @@ func signup(w http.ResponseWriter, r *http.Request) {
 		}
 		err := checkNewUser(user)
 		if err == "" {
-			addUserToDB(user)
+			user.InsertIntoDB()
 			addSessionToDB(w, r, user)
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 		} else {
@@ -132,7 +132,7 @@ func post(w http.ResponseWriter, r *http.Request) {
 		comment.Data = commentData
 		comment.Date = time.Now()
 
-		addCommentToDB(comment)
+		comment.InsertIntoDB()
 		http.Redirect(w, r, "/post/"+strconv.Itoa(ID), http.StatusSeeOther)
 	}
 
@@ -191,7 +191,7 @@ func newPost(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		id := strconv.Itoa(int(addPostToDB(post, categories)))
+		id := strconv.Itoa(int(post.InsertIntoDB(categories)))
 		http.Redirect(w, r, "/post/"+id, http.StatusSeeOther)
 	}
 }
@@ -225,32 +225,71 @@ func likes(w http.ResponseWriter, r *http.Request) {
 	switch whatToLike {
 	case "post":
 		post := getPostByID(user.ID, ID)
+		var like PostLike
+		like.PostID = ID
+		like.AuthorID = user.ID
 		switch likeType {
 		case "like":
-			if !post.Disliked {
-				if !post.Liked {
-					//add like
-				} else {
-					//del like
-				}
+			like.Type = "like"
+			if post.Disliked {
+				like.InsertIntoDB()
+				like.Type = "dislike"
+				like.DeleteFromDB()
 			} else {
-				//add like
-				//del dislike
+				if post.Liked {
+					like.DeleteFromDB()
+				} else {
+					like.InsertIntoDB()
+				}
 			}
 		case "dislike":
-			if !post.Liked {
-				if !post.Disliked {
-					//add dislike
-				} else {
-					//del dislike
-				}
+			like.Type = "dislike"
+			if post.Liked {
+				like.InsertIntoDB()
+				like.Type = "like"
+				like.DeleteFromDB()
 			} else {
-				//add dislike
-				//del like
+				if post.Disliked {
+					like.DeleteFromDB()
+				} else {
+					like.InsertIntoDB()
+				}
 			}
 		}
+		http.Redirect(w, r, "/post/"+strconv.Itoa(post.ID), http.StatusSeeOther)
 	case "comment":
-		// comment := getCommentByID(ID)
-
+		comment := getCommentByID(user.ID, ID)
+		var like CommentLike
+		like.CommentID = ID
+		like.AuthorID = user.ID
+		switch likeType {
+		case "like":
+			like.Type = "like"
+			if comment.Disliked {
+				like.InsertIntoDB()
+				like.Type = "dislike"
+				like.DeleteFromDB()
+			} else {
+				if comment.Liked {
+					like.DeleteFromDB()
+				} else {
+					like.InsertIntoDB()
+				}
+			}
+		case "dislike":
+			like.Type = "dislike"
+			if comment.Liked {
+				like.InsertIntoDB()
+				like.Type = "like"
+				like.DeleteFromDB()
+			} else {
+				if comment.Disliked {
+					like.DeleteFromDB()
+				} else {
+					like.InsertIntoDB()
+				}
+			}
+		}
+		http.Redirect(w, r, "/post/"+strconv.Itoa(comment.PostID), http.StatusSeeOther)
 	}
 }

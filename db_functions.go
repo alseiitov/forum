@@ -13,7 +13,7 @@ import (
 var defaultAvatar = "/images/avatars/avatar.jpg"
 
 func initDB() {
-	tablesForDB := []string{
+	dbSchemes := []string{
 		`	CREATE TABLE IF NOT EXISTS users (
 			id			INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, 
 			username	TEXT UNIQUE NOT NULL, 
@@ -69,7 +69,7 @@ func initDB() {
 		)`,
 	}
 
-	for _, table := range tablesForDB {
+	for _, table := range dbSchemes {
 		createDB(table)
 	}
 }
@@ -153,7 +153,7 @@ func addSessionToDB(w http.ResponseWriter, r *http.Request, user User) {
 	add.Exec(user.ID, sessionID, time.Now().Add(24*time.Hour))
 }
 
-func addUserToDB(user User) {
+func (user User) InsertIntoDB() {
 	db, _ := sql.Open("sqlite3", "./db/database.db")
 	defer db.Close()
 
@@ -388,7 +388,7 @@ func getLikesByCommentID(requesterID int, ID int) ([]CommentLike, []CommentLike,
 	return Likes, Dislikes, Liked, Disliked
 }
 
-func addPostToDB(post Post, categories []int) int64 {
+func (post Post) InsertIntoDB(categories []int) int64 {
 	db, _ := sql.Open("sqlite3", "./db/database.db")
 	defer db.Close()
 
@@ -406,11 +406,51 @@ func addPostToDB(post Post, categories []int) int64 {
 	return id
 }
 
-func addCommentToDB(comment Comment) {
+func (comment Comment) InsertIntoDB() {
 	db, _ := sql.Open("sqlite3", "./db/database.db")
 	defer db.Close()
 
 	add, _ := db.Prepare("INSERT INTO comments (author_id, post_id, data, date) VALUES (?, ?, ?, ?)")
 	defer add.Close()
 	add.Exec(comment.AuthorID, comment.PostID, comment.Data, comment.Date)
+}
+
+func (like PostLike) InsertIntoDB() {
+	db, _ := sql.Open("sqlite3", "./db/database.db")
+	defer db.Close()
+
+	add, _ := db.Prepare("INSERT INTO posts_likes (post_id, author_id, type) VALUES (?, ?, ?)")
+	defer add.Close()
+
+	add.Exec(like.PostID, like.AuthorID, like.Type)
+}
+
+func (like PostLike) DeleteFromDB() {
+	db, _ := sql.Open("sqlite3", "./db/database.db")
+	defer db.Close()
+
+	_, err := db.Exec("DELETE FROM posts_likes WHERE post_id = $1 AND author_id = $2 AND type = $3", like.PostID, like.AuthorID, like.Type)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+}
+
+func (like CommentLike) InsertIntoDB() {
+	db, _ := sql.Open("sqlite3", "./db/database.db")
+	defer db.Close()
+
+	add, _ := db.Prepare("INSERT INTO comments_likes (comment_id, author_id, type) VALUES (?, ?, ?)")
+	defer add.Close()
+
+	add.Exec(like.CommentID, like.AuthorID, like.Type)
+}
+
+func (like CommentLike) DeleteFromDB() {
+	db, _ := sql.Open("sqlite3", "./db/database.db")
+	defer db.Close()
+
+	_, err := db.Exec("DELETE FROM comments_likes WHERE comment_id = $1 AND author_id = $2 AND type = $3", like.CommentID, like.AuthorID, like.Type)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 }
