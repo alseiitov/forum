@@ -6,23 +6,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Forum</title>
+    <link rel="stylesheet" href="/static/styles/header.css">
+    <link rel="stylesheet" href="/static/styles/index.css">
 </head>
 
 <body>
-    {{ template "header" .User }}
-    <div>
-        {{ if eq .User.Role "user" "admin" "moderator" }}
-        Welcome {{ .User.Username }}
-        <img src="{{.User.Avatar}}">
-        {{ end }}
-    </div>
-
-    <div class="categories">
-        {{ range .Categories }}
-        <div class="categorie">
-            <a href="/categorie/{{.ID}}">{{.Name}}</a>
+    <div class="container">
+        {{ template "header" .User }}
+        <div>
+            {{ if eq .User.Role "user" "admin" "moderator" }}
+            <div class="message">Welcome back, {{ .User.Username }}!</div>
+            {{ else }}
+            <div class="message">Welcome to the forum, guest!</div>
+            {{end}}
         </div>
-        {{ end }}
+
+        <div class="categories">
+            Categories:
+            {{ range .Categories }}
+            <div class="categorie">
+                <a href="/categorie/{{.ID}}">{{.Name}}</a>
+            </div>
+            {{ end }}
+        </div>
     </div>
 </body>
 

@@ -6,28 +6,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>New post</title>
+    <link rel="stylesheet" href="/static/styles/header.css">
+    <link rel="stylesheet" href="/static/styles/newpost.css">
 </head>
 
 <body>
-    {{template "header" .User}}
-    <div>
+    <div class="container">
+        {{template "header" .User}}
         <form method="post" enctype="multipart/form-data">
-            <input type="file" name="image" accept="image/*"> <br>
-            <input type="text" name="title" maxlength="30" required> <br>
-            <select name="categorie1" required>
-                <option value="0" selected>None</option>
-                {{range .Categories}}
-                <option value="{{.ID}}">{{.Name}}</option>
-                {{end}}
-            </select>
-            <select name="categorie2">
-                <option value="0" selected>None</option>
-                {{range .Categories}}
-                <option value="{{.ID}}">{{.Name}}</option>
-                {{end}}
-            </select>
-            <textarea name="data" cols="30" rows="10" required></textarea> <br>
-            <input type="submit" value="Upload">
+            <div class="title">
+                Post title: <br>
+                <input type="text" name="title" id="titleinput" maxlength="30" required> <br>
+            </div>
+            <div class="image">
+                Image: <br>
+                <input type="file" name="image" accept="image/*">
+            </div>
+            <div class="categories">
+                Post categories: <br>
+                <select name="categorie1" required>
+                    <option value="0" selected disabled>Required</option>
+                    {{range .Categories}}
+                    <option value="{{.ID}}">{{.Name}}</option>
+                    {{end}}
+                </select>
+                <select name="categorie2">
+                    <option value="0" selected disabled>Optional</option>
+                    {{range .Categories}}
+                    <option value="{{.ID}}">{{.Name}}</option>
+                    {{end}}
+                </select>
+            </div>
+            <div class="textarea">
+                <textarea name="data" cols="30" rows="10" required></textarea> <br>
+            </div>
+            <button type="submit">Post</button>
         </form>
     </div>
 </body>

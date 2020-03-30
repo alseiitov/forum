@@ -6,19 +6,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{.Name}}</title>
+    <link rel="stylesheet" href="/static/styles/header.css">
+    <link rel="stylesheet" href="/static/styles/categorie.css">
 </head>
 
 <body>
-    {{template "header" .User}}
-    <div class="posts">
-        {{.Name}}
-        {{range .Posts}}
-        <div class="post">
-            <a href="/post/{{.ID}}">{{.Title}}</a>
-            <a href="/user/{{.AuthorID}}">{{.AuthorUsername}}</a>
-            {{.Date}}
+    <div class="container">
+        {{template "header" .User}}
+        <div class="posts">
+            {{if .Posts}}
+            <div class="categoriename">{{.Name}}</div>
+            {{range .Posts}}
+            <div class="post">
+                <a href="/post/{{.ID}}">{{.Title}}</a><br>
+                <a href="/user/{{.AuthorID}}">{{.AuthorUsername}}</a> / 
+                {{.Date}}
+            </div>
+            {{end}}
+            {{else}}
+            <div class="post">
+                No posts in this categorie
+            </div>
+            {{end}}
         </div>
-        {{end}}
     </div>
 </body>
 

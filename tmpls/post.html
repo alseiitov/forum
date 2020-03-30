@@ -7,112 +7,119 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{.Post.Title}}</title>
     <script src="https://kit.fontawesome.com/00f6ec1551.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="/static/styles/header.css">
+    <link rel="stylesheet" href="/static/styles/post.css">
 </head>
 
 <body>
-    {{template "header" .User}}
-    <div class="post">
-        <div class="title">{{.Post.Title}}</div>
-        {{if .Post.Image}}
-        <div class="image">
-            <img src="{{.Post.Image}}">
-        </div>
-        {{end}}
-        <div class="info">
-            <a href="/user/{{.Post.AuthorID}}">{{.Post.AuthorUsername}}</a>
-            {{.Post.Date}}
-        </div>
-        <div class="data">
-            {{.Post.Data}}
-        </div>
-        <div class="likes">
-            {{ if eq .User.Role "user" "admin" "moderator" }}
-
-            {{if .Post.Liked}}
-            <a href="/likes/like/post/{{.Post.ID}}">
-                <i class="fas fa-thumbs-up"></i>
-            </a>
-            {{else}}
-            <a href="/likes/like/post/{{.Post.ID}}">
-                <i class="far fa-thumbs-up"></i>
-            </a>
+    <div class="container">
+        {{template "header" .User}}
+        <div class="post">
+            <div class="title">{{.Post.Title}}</div>
+            {{if .Post.Image}}
+            <div class="image">
+                <img src="{{.Post.Image}}">
+            </div>
             {{end}}
+            <div class="data">
+                {{.Post.Data}}
+            </div>
+            <div class="info">
+                Created by: 
+                <a href="/user/{{.Post.AuthorID}}">{{.Post.AuthorUsername}}</a> <br>
+                Creation date: 
+                {{.Post.Date}}
+            </div>
+            <div class="likes">
+                {{ if eq .User.Role "user" "admin" "moderator" }}
 
-            {{else}}
-            <i class="far fa-thumbs-up"></i>
-            {{end}}
-            {{ len .Post.Likes }}
-
-
-            {{ if eq .User.Role "user" "admin" "moderator" }}
-            {{if .Post.Disliked}}
-            <a href="/likes/dislike/post/{{.Post.ID}}">
-                <i class="fas fa-thumbs-down"></i>
-            </a>
-            {{else}}
-            <a href="/likes/dislike/post/{{.Post.ID}}">
-                <i class="far fa-thumbs-down"></i>
-            </a>
-            {{end}}
-
-            {{else}}
-            <i class="far fa-thumbs-down"></i>
-            {{end}}
-            {{ len .Post.Dislikes }} <br>
-        </div>
-        <div class="comments">
-            {{$user := .User}}
-            {{range .Comments}}
-            <div class="comment">
-                <a href="/user/{{.AuthorID}}">{{.AuthorUsername}}</a>
-                {{.Date}}
-                {{.Data}} <br>
-                <div class="likes">
-                    {{ if eq $user.Role "user" "admin" "moderator" }}
-
-                    {{if .Liked}}
-                    <a href="/likes/like/comment/{{.ID}}">
-                        <i class="fas fa-thumbs-up"></i>
-                    </a>
-                    {{else}}
-                    <a href="/likes/like/comment/{{.ID}}">
-                        <i class="far fa-thumbs-up"></i>
-                    </a>
-                    {{end}}
-
-                    {{else}}
+                {{if .Post.Liked}}
+                <a href="/likes/like/post/{{.Post.ID}}">
+                    <i class="fas fa-thumbs-up"></i>
+                </a>
+                {{else}}
+                <a href="/likes/like/post/{{.Post.ID}}">
                     <i class="far fa-thumbs-up"></i>
-                    {{end}}
-                    {{ len .Likes }}
+                </a>
+                {{end}}
+
+                {{else}}
+                <i class="far fa-thumbs-up"></i>
+                {{end}}
+                {{ len .Post.Likes }}
 
 
-                    {{ if eq $user.Role "user" "admin" "moderator" }}
-                    {{if .Disliked}}
-                    <a href="/likes/dislike/comment/{{.ID}}">
-                        <i class="fas fa-thumbs-down"></i>
-                    </a>
-                    {{else}}
-                    <a href="/likes/dislike/comment/{{.ID}}">
-                        <i class="far fa-thumbs-down"></i>
-                    </a>
-                    {{end}}
-
-                    {{else}}
+                {{ if eq .User.Role "user" "admin" "moderator" }}
+                {{if .Post.Disliked}}
+                <a href="/likes/dislike/post/{{.Post.ID}}">
+                    <i class="fas fa-thumbs-down"></i>
+                </a>
+                {{else}}
+                <a href="/likes/dislike/post/{{.Post.ID}}">
                     <i class="far fa-thumbs-down"></i>
-                    {{end}}
-                    {{ len .Dislikes }} <br>
+                </a>
+                {{end}}
+
+                {{else}}
+                <i class="far fa-thumbs-down"></i>
+                {{end}}
+                {{ len .Post.Dislikes }} <br>
+            </div>
+            <div class="comments">
+                Commentaries: 
+                {{$user := .User}}
+                {{range .Comments}}
+                <div class="comment">
+                    <a href="/user/{{.AuthorID}}">{{.AuthorUsername}}</a> <br>
+                    {{.Data}} <br>
+                    {{.Date}}
+                    <div class="likes">
+                        {{ if eq $user.Role "user" "admin" "moderator" }}
+
+                        {{if .Liked}}
+                        <a href="/likes/like/comment/{{.ID}}">
+                            <i class="fas fa-thumbs-up"></i>
+                        </a>
+                        {{else}}
+                        <a href="/likes/like/comment/{{.ID}}">
+                            <i class="far fa-thumbs-up"></i>
+                        </a>
+                        {{end}}
+
+                        {{else}}
+                        <i class="far fa-thumbs-up"></i>
+                        {{end}}
+                        {{ len .Likes }}
+
+
+                        {{ if eq $user.Role "user" "admin" "moderator" }}
+                        {{if .Disliked}}
+                        <a href="/likes/dislike/comment/{{.ID}}">
+                            <i class="fas fa-thumbs-down"></i>
+                        </a>
+                        {{else}}
+                        <a href="/likes/dislike/comment/{{.ID}}">
+                            <i class="far fa-thumbs-down"></i>
+                        </a>
+                        {{end}}
+
+                        {{else}}
+                        <i class="far fa-thumbs-down"></i>
+                        {{end}}
+                        {{ len .Dislikes }} <br>
+                    </div>
                 </div>
+                {{end}}
+            </div>
+            {{ if eq .User.Role "user" "admin" "moderator" }}
+            <div class="comment-form">
+                <form method="post">
+                    <textarea name="comment" id="form" cols="30" rows="5" maxlength="200" placeholder="Leave a comment" required></textarea> <br>
+                    <input type="submit" value="Send">
+                </form>
             </div>
             {{end}}
         </div>
-        {{ if eq .User.Role "user" "admin" "moderator" }}
-        <div class="comment-form">
-            <form method="post">
-                <textarea name="comment" cols="30" rows="10" maxlength="300"></textarea>
-                <input type="submit" value="Send">
-            </form>
-        </div>
-        {{end}}
     </div>
 </body>
 

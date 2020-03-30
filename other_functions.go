@@ -68,10 +68,15 @@ func saveImage(r *http.Request) (string, error) {
 
 func getNewPostCategories(r *http.Request) ([]int, error) {
 	cat1, err1 := strconv.Atoi(r.FormValue("categorie1"))
-	cat2, err2 := strconv.Atoi(r.FormValue("categorie2"))
-	lenCats := len(getCategoriesList())
-	if err1 != nil || cat1 < 0 || cat1 > lenCats ||
-		err2 != nil || cat2 < 0 || cat2 > lenCats {
+	cat2, _ := strconv.Atoi(r.FormValue("categorie2"))
+	categories, err := getCategoriesList()
+	if err != nil {
+		return nil, err
+	}
+	lenCats := len(categories)
+	if err1 != nil ||
+		cat1 < 0 || cat1 > lenCats ||
+		cat2 < 0 || cat2 > lenCats {
 		return nil, errors.New("Bad categorie ID")
 	}
 	return removeDuplicatesAndZeroes([]int{cat1, cat2}), nil
@@ -90,4 +95,13 @@ func removeDuplicatesAndZeroes(ints []int) []int {
 		}
 	}
 	return new
+}
+
+func isEmpty(str string) bool {
+	for _, v := range str {
+		if v != ' ' && v != '	' && v != '\n' {
+			return false
+		}
+	}
+	return true
 }

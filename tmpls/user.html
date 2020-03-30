@@ -6,63 +6,93 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{.Profile.Username}}</title>
+    <script src="https://kit.fontawesome.com/00f6ec1551.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="/static/styles/header.css">
+    <link rel="stylesheet" href="/static/styles/user.css">
 </head>
 
 <body>
-    {{ template "header" .User }}
-    <div class="profile">
-        <div class="avatar"><img src="{{.Profile.Avatar}}"></div>
-        <div class="info">
-            Username: {{.Profile.Username}} <br>
-            E-mail: {{.Profile.Email}} <br>
-            Role: {{.Profile.Role}} <br>
-        </div>
-        <div class="posts">
-            Posts <br>
-            {{range .Posts}}
-            <div class="post">
-                <a href="/post/{{.ID}}">{{.Title}}</a>
+    <div class="container">
+        {{ template "header" .User }}
+        <div class="profile">
+            <div class="avatar"><img src="{{.Profile.Avatar}}"></div>
+            <div class="info">
+                <b>Information:</b><br>
+                Username: {{.Profile.Username}} <br>
+                E-mail: {{.Profile.Email}} <br>
+                Role: {{.Profile.Role}} <br>
             </div>
-            {{end}}
-        </div>
-        <div class="comments">
-            Comments <br>
-            {{range .Comments}}
-            <div class="comment">
-                <a href="/post/{{.PostID}}">{{.PostTitle}}</a>
-                {{.Date}} <br>
-                {{.Data}} <br>
+
+
+            <div class="posts">
+                <b>Posts:</b><br>
+                {{if .Posts}}
+                {{range .Posts}}
+                <div class="post">
+                    <a href="/post/{{.ID}}">{{.Title}}</a>
+                </div>
+                {{end}}
+                {{else}}
+                No posts
+                {{end}}
             </div>
-            {{end}}
-        </div>
-        
-        <div class="likes">
-            Liked posts <br>
-            {{range .LikedPosts}}
-            <div class="likedpost">
-                {{if .Liked}}
-                Liked
+
+            <div class="comments">
+                <b>Commentaries:</b><br>
+                {{if .Comments}}
+                {{range .Comments}}
+                <div class="comment">
+                    <a href="/post/{{.PostID}}">{{.PostTitle}}</a>
+                    {{.Date}} <br>
+                    {{.Data}} <br>
+                </div>
                 {{end}}
-                {{if .Disliked}}
-                Disliked
+                {{else}}
+                No commentaries
                 {{end}}
-                <a href="/post/{{.ID}}">{{.Title}}</a>
             </div>
-            {{end}}
-            Liked comments: <br>
-            {{range .LikedComments}}
-            <div class="likedcomment">
-                {{if .Liked}}
-                Liked
-                {{end}}
-                {{if .Disliked}}
-                Disliked
-                {{end}}
-                <a href="/user/{{.AuthorID}}">{{.AuthorUsername}}</a> <br>
-                {{.Data}} <br>
-                <a href="/post/{{.PostID}}">{{.PostTitle}}</a>
+
+            <div class="likes">
+                <div class="likedposts">
+                    <b>Liked posts:</b><br>
+                    {{if .LikedPosts}}
+                    {{range .LikedPosts}}
+                    <div class="likedpost">
+                        {{if .Liked}}
+                        <i class="far fa-thumbs-up"></i>
+                        {{end}}
+                        {{if .Disliked}}
+                        <i class="far fa-thumbs-down"></i>
+                        {{end}}
+                        <a href="/post/{{.ID}}">{{.Title}}</a>
+                    </div>
+                    {{end}}
+                    {{else}}
+                    No liked posts <br>
+                    {{end}}
+                </div>
+
+                <div class="likedcomments">
+                    <b>Liked comments:</b><br>
+                    {{if .LikedComments}}
+                    {{range .LikedComments}}
+                    <div class="likedcomment">
+                        {{if .Liked}}
+                        <i class="far fa-thumbs-up"></i>
+                        {{end}}
+                        {{if .Disliked}}
+                        <i class="far fa-thumbs-down"></i>
+                        {{end}}
+                        {{.Data}} <br>
+                        <a href="/user/{{.AuthorID}}">{{.AuthorUsername}}</a> / 
+                        <a href="/post/{{.PostID}}">link to post</a>
+                    </div>
+                    {{end}}
+                    {{else}}
+                    No liked commentaries
+                    {{end}}
+                </div>
             </div>
-            {{end}}
         </div>
     </div>
 </body>

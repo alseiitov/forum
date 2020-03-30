@@ -1,0 +1,38 @@
+a{
+    color: black;
+}
+
+.post{
+    display: flex;
+    flex-direction: column;
+}
+
+.title {
+    font-size: 30px;
+ }
+
+.info{
+    margin-top: 10px;
+}
+
+.data {
+    margin-top: 10px;
+}
+
+.likes {
+    margin-top: 10px;
+}
+
+.comments {
+    margin-top: 20px;
+}
+
+.comment {
+    margin-bottom: 15px;
+}
+
+textarea{
+    width: 100%;
+    resize: none;
+    font-size: 18px;
+}

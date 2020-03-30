@@ -1,22 +1,21 @@
 {{ define "header" }}
 <header>
     <div class="nav">
-        <a href="/">Main</a>
-    </div>
-    <div class="search">
-        <input type="text" name="search" placeholder="Search">
-    </div>
-    <div class="user">
-        {{ if eq .Role "guest" }}
-        <a href="/login">LOG IN</a>
-        <a href="/signup">SIGN UP</a>
-        {{ end }}
+        <div class="links">
+            <a href="/">Main</a>
+        </div>
+        <div class="user">
+            {{ if eq .Role "guest" }}
+            <a href="/login">Log in</a> / 
+            <a href="/signup">Sign up</a>
+            {{ end }}
 
-        {{ if eq .Role "user" "admin" "moderator" }}
-        <a href="/newpost">New post</a>
-        <a href="/user/{{ .ID }}">{{ .Username }}</a>
-        <a href="/logout">LOG OUT</a>
-        {{ end }}
+            {{ if eq .Role "user" "admin" "moderator" }}
+            <a href="/user/{{ .ID }}">{{ .Username }}</a> / 
+            <a href="/newpost">New post</a> / 
+            <a href="/logout">Log out</a>
+            {{ end }}
+        </div>
     </div>
 </header>
 {{ end }}

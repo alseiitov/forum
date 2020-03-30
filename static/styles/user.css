@@ -1,0 +1,31 @@
+a{
+    color: black;
+}
+
+.info {
+    margin-bottom: 20px;
+}
+
+.posts {
+    margin-bottom: 20px;
+}
+
+.comments {
+    margin-bottom: 20px;
+}
+
+.likedposts{
+    margin-top: 30px;
+}
+
+.likedpost {
+    margin-bottom: 20px;
+}
+
+.likedcomments{
+    margin-top: 30px;
+}
+
+.likedcomment{
+    margin-bottom: 20px;
+}

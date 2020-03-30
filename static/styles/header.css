@@ -1,0 +1,23 @@
+body {
+    display: flex;
+    justify-content: center;
+}
+
+a {
+    color: black;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 1000px;
+    font-size: 18px;
+}
+
+.nav {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+

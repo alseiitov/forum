@@ -96,31 +96,16 @@ func fillWithSomeData() {
 	user.Exec("admin", "$2a$04$Jo85X2JGUOFmF9flUnPhpeTNv6X8AWPUcKtoF4kcHgJBAU3vm3sEi", "aaa@aaa.com", "admin", "/images/avatars/avatar.jpg")
 	user.Exec("user", "$2a$04$f9zX9hgA8c3wEwcJJAMDIOwBr1L.tV97tdBuPc02Rq1xucbtVBA16", "user@user.com", "user", "/images/avatars/avatar.jpg")
 
-	post, _ := db.Prepare("INSERT INTO posts (title, author, data, date, image) VALUES (?, ?, ?, ?, ?)")
-	defer post.Close()
-	post.Exec("Title", 1, "Lorem ipsum", time.Now(), nil)
-
 	categorie, _ := db.Prepare("INSERT INTO categories (name) VALUES (?)")
 	defer categorie.Close()
 	categorie.Exec("Music")
+	categorie.Exec("Games")
+	categorie.Exec("Movies, Series")
+	categorie.Exec("Books")
+	categorie.Exec("News")
+	categorie.Exec("IT, Programming")
+	categorie.Exec("Other")
 
-	postscategories, _ := db.Prepare("INSERT INTO posts_categories (post_id, categorie_id) VALUES (?, ?)")
-	defer postscategories.Close()
-	postscategories.Exec(1, 1)
-
-	comment, _ := db.Prepare("INSERT INTO comments (author_id, post_id, data, date) VALUES (?, ?, ?, ?)")
-	defer comment.Close()
-	comment.Exec(1, 1, "comment", time.Now())
-
-	postLike, _ := db.Prepare("INSERT INTO posts_likes (post_id, author_id, type) VALUES (?, ?, ?)")
-	defer postLike.Close()
-	postLike.Exec(1, 1, "like")
-	postLike.Exec(1, 1, "dislike")
-
-	commentLike, _ := db.Prepare("INSERT INTO comments_likes (comment_id, author_id, type) VALUES (?, ?, ?)")
-	defer commentLike.Close()
-	commentLike.Exec(1, 1, "like")
-	commentLike.Exec(1, 1, "dislike")
 }
 
 func cleanExpiredSessions() {
@@ -167,11 +152,17 @@ func (user User) InsertIntoDB() {
 	add.Exec(user.Username, user.Password, user.Email, user.Role, defaultAvatar)
 }
 
-func getCategoriesList() []Categorie {
-	db, _ := sql.Open("sqlite3", "./db/database.db")
+func getCategoriesList() ([]Categorie, error) {
+	db, err := sql.Open("sqlite3", "./db/database.db")
+	if err != nil {
+		return nil, err
+	}
 	defer db.Close()
 
-	rows, _ := db.Query("SELECT * FROM categories")
+	rows, err := db.Query("SELECT * FROM categories")
+	if err != nil {
+		return nil, err
+	}
 	defer rows.Close()
 
 	var categories []Categorie
@@ -180,7 +171,7 @@ func getCategoriesList() []Categorie {
 		rows.Scan(&c.ID, &c.Name)
 		categories = append(categories, c)
 	}
-	return categories
+	return categories, nil
 }
 
 func getCategorieByID(ID int) Categorie {
@@ -324,7 +315,7 @@ func getCommentsUserLiked(ID int) []Comment {
 	for rows.Next() {
 		var c Comment
 		rows.Scan(&c.ID)
-		c = getCommentByID(0, c.ID)
+		c = getCommentByID(ID, c.ID)
 		comments = append(comments, c)
 	}
 	return comments
