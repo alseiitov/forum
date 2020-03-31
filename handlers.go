@@ -14,58 +14,96 @@ import (
 var tmpls = template.Must(template.ParseGlob("./tmpls/*"))
 
 func index(w http.ResponseWriter, r *http.Request) {
+	user, err := getUserByCookie(w, r)
+	if err != nil {
+		http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	var data IndexPage
-	data.User = getUserByCookie(w, r)
+	data.User = user
 	categories, err := getCategoriesList()
 	if err != nil {
 		http.Error(w, "500 Internal server error", http.StatusInternalServerError)
 		return
 	}
 	data.Categories = categories
-	tmpls.ExecuteTemplate(w, "index", data)
+
+	err = tmpls.ExecuteTemplate(w, "index", data)
+	if err != nil {
+		http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+	}
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
-	user := getUserByCookie(w, r)
+	user, err := getUserByCookie(w, r)
+	if err != nil {
+		http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	if user.Role != "guest" {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 	switch r.Method {
 	case "GET":
-		tmpls.ExecuteTemplate(w, "login", user)
-	case "POST":
-		username := r.FormValue("username")
-		password := r.FormValue("password")
-		if isEmpty(username) || isEmpty(password) {
-			http.Error(w, "400 Bad Request", http.StatusBadRequest)
+		err := tmpls.ExecuteTemplate(w, "login", user)
+		if err != nil {
+			http.Error(w, "500 Internal server error", http.StatusInternalServerError)
 			return
 		}
-		user := getUserByName(username)
+	case "POST":
+		username := strings.ToLower(r.FormValue("username"))
+		password := r.FormValue("password")
+
+		if isEmpty(username) || isEmpty(password) {
+			http.Error(w, "400 Bad Request, Can't add empty text", http.StatusBadRequest)
+			return
+		}
+
+		user, err := getUserByName(username)
+		if err != nil {
+			http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+			return
+		}
+
 		if user.ID == 0 {
 			w.Write([]byte("User not found"))
 			return
 		}
+
 		salt := user.Email + user.Username
-		err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(salt+password+salt))
+		err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(salt+password+salt))
 		if err != nil {
 			w.Write([]byte("Wrong Pass"))
-		} else {
-			addSessionToDB(w, r, user)
-			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
 		}
+
+		err = addSessionToDB(w, r, user)
+		if err != nil {
+			http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+			return
+		}
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
-	user := getUserByCookie(w, r)
+	user, err := getUserByCookie(w, r)
+	if err != nil {
+		http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	if user.Role == "guest" {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
+
 	db, err := sql.Open("sqlite3", "./db/database.db")
 	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 	db.Exec("DELETE FROM sessions WHERE user_id = $1", user.ID)
@@ -81,64 +119,118 @@ func logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func signup(w http.ResponseWriter, r *http.Request) {
-	user := getUserByCookie(w, r)
+	user, err := getUserByCookie(w, r)
+	if err != nil {
+		http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	if user.Role != "guest" {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
+
 	switch r.Method {
 	case "GET":
-		tmpls.ExecuteTemplate(w, "signup", user)
+		err := tmpls.ExecuteTemplate(w, "signup", user)
+		if err != nil {
+			http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 	case "POST":
 		username := r.FormValue("username")
 		password := r.FormValue("password")
 		email := r.FormValue("email")
-		if isEmpty(username) || isEmpty(password) || isEmpty(email) {
-			http.Error(w, "400 Bad Request", http.StatusBadRequest)
+		if !isValidUsername(username) {
+			w.Write([]byte("Invalid  username"))
 			return
 		}
+		if !isValidPassword(password) {
+			w.Write([]byte("Invalid  password"))
+			return
+		}
+		if !isValidEmail(email) {
+			w.Write([]byte("Invalid  email"))
+			return
+		}
+
 		user := User{
-			Username: username,
+			Username: strings.ToLower(username),
 			Password: password,
-			Email:    email,
+			Email:    strings.ToLower(email),
 		}
+
 		err := checkNewUser(user)
-		if err == "" {
-			user.InsertIntoDB()
-			addSessionToDB(w, r, user)
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
-		} else {
-			w.Write([]byte(err))
+		if err != nil {
+			w.Write([]byte(err.Error()))
+			return
 		}
+
+		err = user.InsertIntoDB()
+		if err != nil {
+			http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		err = addSessionToDB(w, r, user)
+		if err != nil {
+			http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 	}
 }
 
 func categorie(w http.ResponseWriter, r *http.Request) {
-	user := getUserByCookie(w, r)
+	user, err := getUserByCookie(w, r)
+	if err != nil {
+		http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	ID, err := strconv.Atoi(r.URL.Path[11:])
 	if err != nil || ID <= 0 {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Error(w, "404 Not Found", http.StatusNotFound)
 		return
 	}
 
 	var data CategoriePage
 	data.ID = ID
 	data.User = user
-	data.Name = getCategorieByID(ID).Name
+	c, err := getCategorieByID(ID)
+	if err != nil {
+		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	data.Name = c.Name
 	if data.Name == "" {
 		http.Error(w, "404 Not Found", http.StatusNotFound)
 		return
 	}
-	data.Posts = getPostsByCategorieID(ID)
 
-	tmpls.ExecuteTemplate(w, "categorie", data)
+	data.Posts, err = getPostsByCategorieID(ID)
+	if err != nil {
+		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	err = tmpls.ExecuteTemplate(w, "categorie", data)
+	if err != nil {
+		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+	}
 }
 
 func post(w http.ResponseWriter, r *http.Request) {
-	user := getUserByCookie(w, r)
+	user, err := getUserByCookie(w, r)
+	if err != nil {
+		http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	ID, err := strconv.Atoi(r.URL.Path[6:])
 	if err != nil || ID <= 0 {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Error(w, "404 Not Found", http.StatusNotFound)
 		return
 	}
 
@@ -146,14 +238,26 @@ func post(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		var data PostPage
 		data.User = user
-		data.Post = getPostByID(user.ID, ID)
+		data.Post, err = getPostByID(user.ID, ID)
+		if err != nil {
+			http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 		if data.Post.ID == 0 {
 			http.Error(w, "404 Not Found", http.StatusNotFound)
 			return
 		}
-		data.Comments = getCommentsByPostID(user.ID, ID)
+		data.Comments, err = getCommentsByPostID(user.ID, ID)
+		if err != nil {
+			http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 
-		tmpls.ExecuteTemplate(w, "post", data)
+		err = tmpls.ExecuteTemplate(w, "post", data)
+		if err != nil {
+			http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 	case "POST":
 		if user.Role == "guest" {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -162,7 +266,7 @@ func post(w http.ResponseWriter, r *http.Request) {
 		var comment Comment
 		commentData := r.FormValue("comment")
 		if isEmpty(commentData) {
-			w.Write([]byte("Empty messages are not allowed"))
+			http.Error(w, "400 Bad Request, Can't add empty text", http.StatusBadRequest)
 			return
 		}
 
@@ -170,37 +274,59 @@ func post(w http.ResponseWriter, r *http.Request) {
 		comment.PostID = ID
 		comment.Data = commentData
 		comment.Date = time.Now()
-		comment.InsertIntoDB()
+
+		err = comment.InsertIntoDB()
+		if err != nil {
+			http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 		http.Redirect(w, r, "/post/"+strconv.Itoa(ID), http.StatusSeeOther)
 	}
-
 }
 
 func user(w http.ResponseWriter, r *http.Request) {
-	user := getUserByCookie(w, r)
+	user, err := getUserByCookie(w, r)
+	if err != nil {
+		http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	ID, err := strconv.Atoi(r.URL.Path[6:])
 	if err != nil || ID <= 0 {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Error(w, "404 Not Found", http.StatusNotFound)
 		return
 	}
 
 	var data ProfilePage
 	data.User = user
-	data.Profile = getUserByID(ID)
+	var err1, err2, err3, err4, err5 error
+	data.Profile, err1 = getUserByID(ID)
+	data.Posts, err2 = getPostsByUserID(ID)
+	data.Comments, err3 = getCommentsByUserID(ID)
+	data.LikedPosts, err4 = getPostsUserLiked(ID)
+	data.LikedComments, err5 = getCommentsUserLiked(ID)
+	if err1 != nil || err2 != nil || err3 != nil || err4 != nil || err5 != nil {
+		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 	if data.Profile.ID == 0 {
 		http.Error(w, "404 Not Found", http.StatusNotFound)
 		return
 	}
-	data.Posts = getPostsByUserID(ID)
-	data.Comments = getCommentsByUserID(ID)
-	data.LikedPosts = getPostsUserLiked(ID)
-	data.LikedComments = getCommentsUserLiked(ID)
 
-	tmpls.ExecuteTemplate(w, "user", data)
+	err = tmpls.ExecuteTemplate(w, "user", data)
+	if err != nil {
+		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+	}
 }
 
 func newPost(w http.ResponseWriter, r *http.Request) {
-	user := getUserByCookie(w, r)
+	user, err := getUserByCookie(w, r)
+	if err != nil {
+		http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	if user.Role == "guest" {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
@@ -216,7 +342,12 @@ func newPost(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		data.Categories = categories
-		tmpls.ExecuteTemplate(w, "newpost", data)
+
+		err = tmpls.ExecuteTemplate(w, "newpost", data)
+		if err != nil {
+			http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 	case "POST":
 		path, err := saveImage(r)
 		if err != nil && err.Error() != "http: no such file" {
@@ -227,8 +358,8 @@ func newPost(w http.ResponseWriter, r *http.Request) {
 		title := r.FormValue("title")
 		data := r.FormValue("data")
 
-		if isEmpty("title") || isEmpty("data") {
-			http.Error(w, "400 Bad Request", http.StatusBadRequest)
+		if isEmpty(title) || isEmpty(data) {
+			http.Error(w, "400 Bad Request, Can't add empty text", http.StatusBadRequest)
 			return
 		}
 
@@ -252,10 +383,20 @@ func newPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func likes(w http.ResponseWriter, r *http.Request) {
-	user := getUserByCookie(w, r)
-	pathArr := strings.Split(r.URL.String(), "/")
-	if len(pathArr) != 5 || user.Role == "guest" {
+	user, err := getUserByCookie(w, r)
+	if err != nil {
+		http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if user.Role == "guest" {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	pathArr := strings.Split(r.URL.String(), "/")
+	if len(pathArr) != 5 {
+		http.Error(w, "404 Not Found", http.StatusNotFound)
 		return
 	}
 
@@ -279,7 +420,11 @@ func likes(w http.ResponseWriter, r *http.Request) {
 
 	switch whatToLike {
 	case "post":
-		post := getPostByID(user.ID, ID)
+		post, err := getPostByID(user.ID, ID)
+		if err != nil {
+			http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 		if post.ID == 0 {
 			http.Error(w, "400 Bad Request", http.StatusBadRequest)
 			return
@@ -291,27 +436,62 @@ func likes(w http.ResponseWriter, r *http.Request) {
 		case "like":
 			like.Type = "like"
 			if post.Disliked {
-				like.InsertIntoDB()
+				err := like.InsertIntoDB()
+				if err != nil {
+					http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+					return
+				}
+
 				like.Type = "dislike"
-				like.DeleteFromDB()
+				err = like.DeleteFromDB()
+				if err != nil {
+					http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+					return
+				}
+
 			} else {
 				if post.Liked {
-					like.DeleteFromDB()
+					err := like.DeleteFromDB()
+					if err != nil {
+						http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+						return
+					}
 				} else {
-					like.InsertIntoDB()
+					err := like.InsertIntoDB()
+					if err != nil {
+						http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+						return
+					}
 				}
 			}
 		case "dislike":
 			like.Type = "dislike"
 			if post.Liked {
-				like.InsertIntoDB()
+				err := like.InsertIntoDB()
+				if err != nil {
+					http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+					return
+				}
+
 				like.Type = "like"
-				like.DeleteFromDB()
+				err = like.DeleteFromDB()
+				if err != nil {
+					http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+					return
+				}
 			} else {
 				if post.Disliked {
-					like.DeleteFromDB()
+					err := like.DeleteFromDB()
+					if err != nil {
+						http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+						return
+					}
 				} else {
-					like.InsertIntoDB()
+					err := like.InsertIntoDB()
+					if err != nil {
+						http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+						return
+					}
 				}
 			}
 		}
@@ -329,27 +509,59 @@ func likes(w http.ResponseWriter, r *http.Request) {
 		case "like":
 			like.Type = "like"
 			if comment.Disliked {
-				like.InsertIntoDB()
+				err := like.InsertIntoDB()
+				if err != nil {
+					http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+					return
+				}
 				like.Type = "dislike"
-				like.DeleteFromDB()
+				err = like.DeleteFromDB()
+				if err != nil {
+					http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+					return
+				}
 			} else {
 				if comment.Liked {
-					like.DeleteFromDB()
+					err := like.DeleteFromDB()
+					if err != nil {
+						http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+						return
+					}
 				} else {
-					like.InsertIntoDB()
+					err := like.InsertIntoDB()
+					if err != nil {
+						http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+						return
+					}
 				}
 			}
 		case "dislike":
 			like.Type = "dislike"
 			if comment.Liked {
-				like.InsertIntoDB()
+				err := like.InsertIntoDB()
+				if err != nil {
+					http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+					return
+				}
 				like.Type = "like"
-				like.DeleteFromDB()
+				err = like.DeleteFromDB()
+				if err != nil {
+					http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+					return
+				}
 			} else {
 				if comment.Disliked {
-					like.DeleteFromDB()
+					err := like.DeleteFromDB()
+					if err != nil {
+						http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+						return
+					}
 				} else {
-					like.InsertIntoDB()
+					err := like.InsertIntoDB()
+					if err != nil {
+						http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+						return
+					}
 				}
 			}
 		}

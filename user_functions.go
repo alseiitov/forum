@@ -2,13 +2,15 @@ package main
 
 import (
 	"database/sql"
+	"errors"
+	"log"
 	"net/http"
 
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func checkNewUser(user User) string {
+func checkNewUser(user User) error {
 	db, _ := sql.Open("sqlite3", "./db/database.db")
 	defer db.Close()
 
@@ -19,16 +21,17 @@ func checkNewUser(user User) string {
 	email.Scan(&c.Email)
 
 	if c.Username != "" {
-		return "Username is already in use, please try again!"
-	}
-	if c.Email != "" {
-		return "E-mail is already in use, please try again!"
+		return errors.New("username is already in use, please try again")
 	}
 
-	return ""
+	if c.Email != "" {
+		return errors.New("e-mail is already in use, please try again")
+	}
+
+	return nil
 }
 
-func getUserByCookie(w http.ResponseWriter, req *http.Request) User {
+func getUserByCookie(w http.ResponseWriter, req *http.Request) (User, error) {
 	userCookie, err := req.Cookie("session")
 	if err != nil {
 		sessionID := uuid.NewV4()
@@ -41,17 +44,23 @@ func getUserByCookie(w http.ResponseWriter, req *http.Request) User {
 	}
 
 	session := getSessionByUUID(userCookie.Value)
-	user := getUserByID(session.UserID)
+	user, err := getUserByID(session.UserID)
+	if err != nil {
+		return user, err
+	}
 
 	if user.Role == "" {
 		user.Role = "guest"
 	}
 
-	return user
+	return user, nil
 }
 
 func getSessionByUUID(uuid string) Session {
-	db, _ := sql.Open("sqlite3", "./db/database.db")
+	db, err := sql.Open("sqlite3", "./db/database.db")
+	if err != nil {
+		log.Println(err.Error())
+	}
 	defer db.Close()
 
 	data := db.QueryRow("SELECT * FROM sessions WHERE uuid = $1", uuid)
@@ -60,26 +69,34 @@ func getSessionByUUID(uuid string) Session {
 	return session
 }
 
-func getUserByID(id int) User {
-	db, _ := sql.Open("sqlite3", "./db/database.db")
+func getUserByID(id int) (User, error) {
+	var user User
+
+	db, err := sql.Open("sqlite3", "./db/database.db")
+	if err != nil {
+		return user, err
+	}
 	defer db.Close()
 
 	data := db.QueryRow("SELECT * FROM users WHERE id = $1", id)
-	var user User
 	data.Scan(&user.ID, &user.Username, &user.Password, &user.Email, &user.Role, &user.Avatar)
 
-	return user
+	return user, nil
 }
 
-func getUserByName(username string) User {
-	db, _ := sql.Open("sqlite3", "./db/database.db")
+func getUserByName(username string) (User, error) {
+	var user User
+	db, err := sql.Open("sqlite3", "./db/database.db")
+	if err != nil {
+		return user, err
+	}
 	defer db.Close()
 
 	data := db.QueryRow("SELECT * FROM users WHERE username = $1", username)
-	var user User
+
 	data.Scan(&user.ID, &user.Username, &user.Password, &user.Email, &user.Role, &user.Avatar)
 
-	return user
+	return user, nil
 }
 
 func encryptPass(user User) string {

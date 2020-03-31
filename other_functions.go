@@ -105,3 +105,77 @@ func isEmpty(str string) bool {
 	}
 	return true
 }
+
+func isValidEmail(str string) bool {
+	if isEmpty(str) {
+		return false
+	}
+
+	if len(str) > 30 {
+		return false
+	}
+
+	arr1 := strings.Split(str, "@")
+	if len(arr1) != 2 {
+		return false
+	}
+
+	if len(arr1[0]) == 0 || len(arr1[1]) == 0 {
+		return false
+	}
+
+	arr2 := strings.Split(arr1[1], ".")
+	if len(arr2) != 2 {
+		return false
+	}
+
+	if len(arr2[0]) == 0 || len(arr2[1]) == 0 {
+		return false
+	}
+	return true
+}
+
+func isValidPassword(str string) bool {
+	if isEmpty(str) {
+		return false
+	}
+
+	if len(str) < 8 || len(str) > 30 {
+		return false
+	}
+
+	capitals := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	lowers := "abcdefghijklmnopqrstuvwxyz"
+	nums := "0123456789"
+
+	if !strings.ContainsAny(str, capitals) || !strings.ContainsAny(str, lowers) || !strings.ContainsAny(str, nums) {
+		return false
+	}
+
+	return true
+}
+
+func isValidUsername(str string) bool {
+	if isEmpty(str) {
+		return false
+	}
+
+	if len(str) < 2 || len(str) > 20 {
+		return false
+	}
+
+	allowed := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_."
+	counter := 0
+
+	for _, v := range str {
+		if strings.ContainsAny(string(v), allowed) {
+			counter++
+		}
+	}
+
+	if counter != len(str) {
+		return false
+	}
+
+	return true
+}
