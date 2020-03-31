@@ -31,7 +31,7 @@ func checkNewUser(user User) string {
 func getUserByCookie(w http.ResponseWriter, req *http.Request) User {
 	userCookie, err := req.Cookie("session")
 	if err != nil {
-		sessionID, _ := uuid.NewV4()
+		sessionID := uuid.NewV4()
 		userCookie = &http.Cookie{
 			Name:  "session",
 			Value: sessionID.String(),

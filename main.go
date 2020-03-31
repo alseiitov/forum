@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 )
 
 func main() {
@@ -25,6 +26,10 @@ func main() {
 	http.HandleFunc("/newpost", newPost)
 	http.HandleFunc("/likes/", likes)
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 	fmt.Println("Running...")
-	fmt.Println(http.ListenAndServe(":8080", nil))
+	fmt.Println(http.ListenAndServe(":"+port, nil))
 }
