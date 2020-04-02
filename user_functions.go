@@ -21,7 +21,7 @@ func checkNewUser(user User) error {
 	email.Scan(&c.Email)
 
 	if c.Username != "" {
-		return errors.New("username is already in use, please try again")
+		return errors.New("username or email is already in use, please try again")
 	}
 
 	if c.Email != "" {
@@ -84,7 +84,7 @@ func getUserByID(id int) (User, error) {
 	return user, nil
 }
 
-func getUserByName(username string) (User, error) {
+func getUserByNameOrEmail(usernameOrEmail string) (User, error) {
 	var user User
 	db, err := sql.Open("sqlite3", "./db/database.db")
 	if err != nil {
@@ -92,7 +92,7 @@ func getUserByName(username string) (User, error) {
 	}
 	defer db.Close()
 
-	data := db.QueryRow("SELECT * FROM users WHERE username = $1", username)
+	data := db.QueryRow("SELECT * FROM users WHERE username = $1 OR email = $1", usernameOrEmail)
 
 	data.Scan(&user.ID, &user.Username, &user.Password, &user.Email, &user.Role, &user.Avatar)
 

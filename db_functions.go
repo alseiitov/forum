@@ -84,6 +84,7 @@ func createDB(table string) error {
 	db, err := sql.Open("sqlite3", "./db/database.db")
 	defer db.Close()
 	if err != nil {
+
 		return err
 	}
 

@@ -54,15 +54,15 @@ func login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case "POST":
-		username := strings.ToLower(r.FormValue("username"))
+		usernameOrEmail := strings.ToLower(r.FormValue("username"))
 		password := r.FormValue("password")
 
-		if isEmpty(username) || isEmpty(password) {
+		if isEmpty(usernameOrEmail) || isEmpty(password) {
 			http.Error(w, "400 Bad Request, Can't add empty text", http.StatusBadRequest)
 			return
 		}
 
-		user, err := getUserByName(username)
+		user, err := getUserByNameOrEmail(usernameOrEmail)
 		if err != nil {
 			http.Error(w, "500 Internal server error", http.StatusInternalServerError)
 			return
