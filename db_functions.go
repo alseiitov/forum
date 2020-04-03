@@ -141,7 +141,7 @@ func addSessionToDB(w http.ResponseWriter, r *http.Request, user User) error {
 
 	db.Exec("DELETE FROM sessions WHERE user_id = $1", user.ID)
 
-	sessionID := uuid.NewV4()
+	sessionID, _ := uuid.NewV4()
 	cookie := &http.Cookie{
 		Name:  "session",
 		Value: sessionID.String(),
