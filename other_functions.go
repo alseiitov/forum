@@ -52,7 +52,7 @@ func saveImage(r *http.Request) (string, error) {
 	}
 
 	// Saving image
-	fname, _ := uuid.NewV4()
+	fname := uuid.NewV4()
 	if err != nil {
 		return "", err
 	}
