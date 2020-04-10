@@ -11,12 +11,13 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type fn func(http.ResponseWriter, *http.Request, User)
+
 var tmpls = template.Must(template.ParseGlob("./tmpls/*"))
 
-func index(w http.ResponseWriter, r *http.Request) {
-	user, err := getUserByCookie(w, r)
-	if err != nil {
-		http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+func index(w http.ResponseWriter, r *http.Request, user User) {
+	if r.URL.Path != "/" {
+		http.Error(w, "404 Not Found", http.StatusNotFound)
 		return
 	}
 
@@ -35,17 +36,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func login(w http.ResponseWriter, r *http.Request) {
-	user, err := getUserByCookie(w, r)
-	if err != nil {
-		http.Error(w, "500 Internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	if user.Role != "guest" {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		return
-	}
+func login(w http.ResponseWriter, r *http.Request, user User) {
 	switch r.Method {
 	case "GET":
 		err := tmpls.ExecuteTemplate(w, "login", user)
@@ -89,18 +80,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func logout(w http.ResponseWriter, r *http.Request) {
-	user, err := getUserByCookie(w, r)
-	if err != nil {
-		http.Error(w, "500 Internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	if user.Role == "guest" {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		return
-	}
-
+func logout(w http.ResponseWriter, r *http.Request, user User) {
 	db, err := sql.Open("sqlite3", "./db/database.db")
 	if err != nil {
 		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
@@ -118,18 +98,7 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-func signup(w http.ResponseWriter, r *http.Request) {
-	user, err := getUserByCookie(w, r)
-	if err != nil {
-		http.Error(w, "500 Internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	if user.Role != "guest" {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		return
-	}
-
+func signup(w http.ResponseWriter, r *http.Request, user User) {
 	switch r.Method {
 	case "GET":
 		err := tmpls.ExecuteTemplate(w, "signup", user)
@@ -182,13 +151,7 @@ func signup(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func categorie(w http.ResponseWriter, r *http.Request) {
-	user, err := getUserByCookie(w, r)
-	if err != nil {
-		http.Error(w, "500 Internal server error", http.StatusInternalServerError)
-		return
-	}
-
+func categorie(w http.ResponseWriter, r *http.Request, user User) {
 	ID, err := strconv.Atoi(r.URL.Path[11:])
 	if err != nil || ID <= 0 {
 		http.Error(w, "404 Not Found", http.StatusNotFound)
@@ -221,13 +184,7 @@ func categorie(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func post(w http.ResponseWriter, r *http.Request) {
-	user, err := getUserByCookie(w, r)
-	if err != nil {
-		http.Error(w, "500 Internal server error", http.StatusInternalServerError)
-		return
-	}
-
+func post(w http.ResponseWriter, r *http.Request, user User) {
 	ID, err := strconv.Atoi(r.URL.Path[6:])
 	if err != nil || ID <= 0 {
 		http.Error(w, "404 Not Found", http.StatusNotFound)
@@ -284,13 +241,7 @@ func post(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func user(w http.ResponseWriter, r *http.Request) {
-	user, err := getUserByCookie(w, r)
-	if err != nil {
-		http.Error(w, "500 Internal server error", http.StatusInternalServerError)
-		return
-	}
-
+func user(w http.ResponseWriter, r *http.Request, user User) {
 	ID, err := strconv.Atoi(r.URL.Path[6:])
 	if err != nil || ID <= 0 {
 		http.Error(w, "404 Not Found", http.StatusNotFound)
@@ -320,18 +271,7 @@ func user(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func newPost(w http.ResponseWriter, r *http.Request) {
-	user, err := getUserByCookie(w, r)
-	if err != nil {
-		http.Error(w, "500 Internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	if user.Role == "guest" {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		return
-	}
-
+func newPost(w http.ResponseWriter, r *http.Request, user User) {
 	switch r.Method {
 	case "GET":
 		var data newPostPage
@@ -382,18 +322,7 @@ func newPost(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func likes(w http.ResponseWriter, r *http.Request) {
-	user, err := getUserByCookie(w, r)
-	if err != nil {
-		http.Error(w, "500 Internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	if user.Role == "guest" {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		return
-	}
-
+func likes(w http.ResponseWriter, r *http.Request, user User) {
 	pathArr := strings.Split(r.URL.String(), "/")
 	if len(pathArr) != 5 {
 		http.Error(w, "404 Not Found", http.StatusNotFound)
@@ -567,4 +496,45 @@ func likes(w http.ResponseWriter, r *http.Request) {
 		}
 		http.Redirect(w, r, "/post/"+strconv.Itoa(comment.PostID), http.StatusSeeOther)
 	}
+}
+
+func authorized(next fn) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, err := getUserByCookie(w, r)
+		if err != nil {
+			http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+			return
+		}
+		if user.Role == "guest" {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+		next(w, r, user)
+	})
+}
+
+func unauthorized(next fn) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, err := getUserByCookie(w, r)
+		if err != nil {
+			http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+			return
+		}
+		if user.Role != "guest" {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+		next(w, r, user)
+	})
+}
+
+func all(next fn) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, err := getUserByCookie(w, r)
+		if err != nil {
+			http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+			return
+		}
+		next(w, r, user)
+	})
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"errors"
 	"net/http"
 
@@ -10,9 +9,6 @@ import (
 )
 
 func checkNewUser(user User) error {
-	db, _ := sql.Open("sqlite3", "./db/database.db")
-	defer db.Close()
-
 	username := db.QueryRow("SELECT username FROM users WHERE username = $1", user.Username)
 	email := db.QueryRow("SELECT email FROM users WHERE email = $1", user.Email)
 	c := User{}
