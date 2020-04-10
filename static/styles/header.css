@@ -1,6 +1,7 @@
 body {
     display: flex;
     justify-content: center;
+    font-family: 'PT Sans Narrow', sans-serif;
 }
 
 a {

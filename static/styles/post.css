@@ -1,17 +1,22 @@
-a{
+a {
     color: black;
 }
 
-.post{
+.post {
     display: flex;
     flex-direction: column;
 }
 
 .title {
     font-size: 30px;
- }
+}
 
-.info{
+.image img {
+    max-width: 100%;
+    height: auto;
+}
+
+.info {
     margin-top: 10px;
 }
 
@@ -31,7 +36,7 @@ a{
     margin-bottom: 15px;
 }
 
-textarea{
+textarea {
     width: 100%;
     resize: none;
     font-size: 18px;

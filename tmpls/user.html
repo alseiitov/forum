@@ -9,6 +9,7 @@
     <script src="https://kit.fontawesome.com/00f6ec1551.js" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="/static/styles/header.css">
     <link rel="stylesheet" href="/static/styles/user.css">
+    <link href="https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&display=swap" rel="stylesheet"> 
 </head>
 
 <body>
@@ -42,9 +43,8 @@
                 {{if .Comments}}
                 {{range .Comments}}
                 <div class="comment">
-                    <a href="/post/{{.PostID}}">{{.PostTitle}}</a>
-                    {{.Date}} <br>
                     {{.Data}} <br>
+                    Post: <a href="/post/{{.PostID}}">{{.PostTitle}}</a> /  {{.Date}}
                 </div>
                 {{end}}
                 {{else}}

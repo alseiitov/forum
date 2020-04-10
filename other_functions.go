@@ -52,7 +52,10 @@ func saveImage(r *http.Request) (string, error) {
 	}
 
 	// Saving image
-	fname := uuid.NewV4()
+	fname, err := uuid.NewV4()
+	if err != nil {
+		return "", err
+	}
 	if err != nil {
 		return "", err
 	}
@@ -73,7 +76,7 @@ func getNewPostCategories(r *http.Request) ([]int, error) {
 	if err != nil {
 		return nil, err
 	}
-	lenCats := len(categories)
+	lenCats := len(categories) + 1
 	if err1 != nil ||
 		cat1 < 0 || cat1 > lenCats ||
 		cat2 < 0 || cat2 > lenCats {
@@ -140,7 +143,7 @@ func isValidPassword(str string) bool {
 		return false
 	}
 
-	if len(str) < 8 || len(str) > 30 {
+	if len(str) < 5 || len(str) > 30 {
 		return false
 	}
 
@@ -151,7 +154,6 @@ func isValidPassword(str string) bool {
 	if !strings.ContainsAny(str, capitals) || !strings.ContainsAny(str, lowers) || !strings.ContainsAny(str, nums) {
 		return false
 	}
-
 	return true
 }
 
@@ -160,11 +162,11 @@ func isValidUsername(str string) bool {
 		return false
 	}
 
-	if len(str) < 2 || len(str) > 20 {
+	if len(str) < 3 || len(str) > 20 {
 		return false
 	}
 
-	allowed := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_."
+	allowed := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.-"
 	counter := 0
 
 	for _, v := range str {

@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"errors"
-	"log"
 	"net/http"
 
 	uuid "github.com/satori/go.uuid"
@@ -32,9 +31,14 @@ func checkNewUser(user User) error {
 }
 
 func getUserByCookie(w http.ResponseWriter, req *http.Request) (User, error) {
+	var user User
+
 	userCookie, err := req.Cookie("session")
 	if err != nil {
-		sessionID := uuid.NewV4()
+		sessionID, err := uuid.NewV4()
+		if err != nil {
+			return user, err
+		}
 		userCookie = &http.Cookie{
 			Name:  "session",
 			Value: sessionID.String(),
@@ -44,7 +48,7 @@ func getUserByCookie(w http.ResponseWriter, req *http.Request) (User, error) {
 	}
 
 	session := getSessionByUUID(userCookie.Value)
-	user, err := getUserByID(session.UserID)
+	user, err = getUserByID(session.UserID)
 	if err != nil {
 		return user, err
 	}
@@ -57,12 +61,6 @@ func getUserByCookie(w http.ResponseWriter, req *http.Request) (User, error) {
 }
 
 func getSessionByUUID(uuid string) Session {
-	db, err := sql.Open("sqlite3", "./db/database.db")
-	if err != nil {
-		log.Println(err.Error())
-	}
-	defer db.Close()
-
 	data := db.QueryRow("SELECT * FROM sessions WHERE uuid = $1", uuid)
 	var session Session
 	data.Scan(&session.UserID, &session.UUID, &session.Date)
@@ -72,12 +70,6 @@ func getSessionByUUID(uuid string) Session {
 func getUserByID(id int) (User, error) {
 	var user User
 
-	db, err := sql.Open("sqlite3", "./db/database.db")
-	if err != nil {
-		return user, err
-	}
-	defer db.Close()
-
 	data := db.QueryRow("SELECT * FROM users WHERE id = $1", id)
 	data.Scan(&user.ID, &user.Username, &user.Password, &user.Email, &user.Role, &user.Avatar)
 
@@ -86,11 +78,6 @@ func getUserByID(id int) (User, error) {
 
 func getUserByNameOrEmail(usernameOrEmail string) (User, error) {
 	var user User
-	db, err := sql.Open("sqlite3", "./db/database.db")
-	if err != nil {
-		return user, err
-	}
-	defer db.Close()
 
 	data := db.QueryRow("SELECT * FROM users WHERE username = $1 OR email = $1", usernameOrEmail)
 
