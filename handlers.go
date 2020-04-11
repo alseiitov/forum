@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"html/template"
 	"net/http"
 	"strconv"
@@ -81,11 +80,6 @@ func login(w http.ResponseWriter, r *http.Request, user User) {
 }
 
 func logout(w http.ResponseWriter, r *http.Request, user User) {
-	db, err := sql.Open("sqlite3", "./db/database.db")
-	if err != nil {
-		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
-		return
-	}
 	db.Exec("DELETE FROM sessions WHERE user_id = $1", user.ID)
 
 	cookie := &http.Cookie{
