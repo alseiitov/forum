@@ -12,6 +12,14 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+func getPort() string {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	return ":" + port
+}
+
 func saveImage(r *http.Request) (string, error) {
 	// Parsing file
 	file, stat, err := r.FormFile("image")

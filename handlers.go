@@ -14,6 +14,47 @@ type fn func(http.ResponseWriter, *http.Request, User)
 
 var tmpls = template.Must(template.ParseGlob("./tmpls/*"))
 
+func handlers() {
+	images := http.FileServer(http.Dir("./db/images"))
+	http.Handle("/images/", http.StripPrefix("/images/", images))
+	static := http.FileServer(http.Dir("./static"))
+	http.Handle("/static/", http.StripPrefix("/static/", static))
+
+	http.HandleFunc("/", middleware(index, "everyone"))
+	http.HandleFunc("/user/", middleware(user, "everyone"))
+	http.HandleFunc("/post/", middleware(post, "everyone"))
+	http.HandleFunc("/categorie/", middleware(categorie, "everyone"))
+
+	http.HandleFunc("/login", middleware(login, "unauthorized"))
+	http.HandleFunc("/signup", middleware(signup, "unauthorized"))
+
+	http.HandleFunc("/newpost", middleware(newPost, "authorized"))
+	http.HandleFunc("/logout", middleware(logout, "authorized"))
+	http.HandleFunc("/likes/", middleware(likes, "authorized"))
+}
+
+func middleware(next fn, userType string) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, err := getUserByCookie(w, r)
+		if err != nil {
+			http.Error(w, "500 Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		if userType == "authorized" && user.Role == "guest" {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		if userType == "unauthorized" && user.Role != "guest" {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		next(w, r, user)
+	})
+}
+
 func index(w http.ResponseWriter, r *http.Request, user User) {
 	if r.URL.Path != "/" {
 		http.Error(w, "404 Not Found", http.StatusNotFound)
@@ -490,45 +531,4 @@ func likes(w http.ResponseWriter, r *http.Request, user User) {
 		}
 		http.Redirect(w, r, "/post/"+strconv.Itoa(comment.PostID), http.StatusSeeOther)
 	}
-}
-
-func authorized(next fn) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user, err := getUserByCookie(w, r)
-		if err != nil {
-			http.Error(w, "500 Internal server error", http.StatusInternalServerError)
-			return
-		}
-		if user.Role == "guest" {
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-			return
-		}
-		next(w, r, user)
-	})
-}
-
-func unauthorized(next fn) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user, err := getUserByCookie(w, r)
-		if err != nil {
-			http.Error(w, "500 Internal server error", http.StatusInternalServerError)
-			return
-		}
-		if user.Role != "guest" {
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-			return
-		}
-		next(w, r, user)
-	})
-}
-
-func all(next fn) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user, err := getUserByCookie(w, r)
-		if err != nil {
-			http.Error(w, "500 Internal server error", http.StatusInternalServerError)
-			return
-		}
-		next(w, r, user)
-	})
 }
