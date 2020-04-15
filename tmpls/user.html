@@ -9,13 +9,14 @@
     <script src="https://kit.fontawesome.com/00f6ec1551.js" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="/static/styles/header.css">
     <link rel="stylesheet" href="/static/styles/user.css">
-    <link href="https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&display=swap" rel="stylesheet"> 
+    <link href="https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
     <div class="container">
         {{ template "header" .User }}
         <div class="profile">
+
             <div class="avatar"><img src="{{.Profile.Avatar}}"></div>
             <div class="info">
                 <b>Information:</b><br>
@@ -44,7 +45,7 @@
                 {{range .Comments}}
                 <div class="comment">
                     {{.Data}} <br>
-                    Post: <a href="/post/{{.PostID}}">{{.PostTitle}}</a> /  {{.Date}}
+                    Post: <a href="/post/{{.PostID}}">{{.PostTitle}}</a> / {{.Date}}
                 </div>
                 {{end}}
                 {{else}}
@@ -84,7 +85,7 @@
                         <i class="far fa-thumbs-down"></i>
                         {{end}}
                         {{.Data}} <br>
-                        <a href="/user/{{.AuthorID}}">{{.AuthorUsername}}</a> / 
+                        <a href="/user/{{.AuthorID}}">{{.AuthorUsername}}</a> /
                         <a href="/post/{{.PostID}}">link to post</a>
                     </div>
                     {{end}}

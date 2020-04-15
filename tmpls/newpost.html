@@ -8,40 +8,42 @@
     <title>New post</title>
     <link rel="stylesheet" href="/static/styles/header.css">
     <link rel="stylesheet" href="/static/styles/newpost.css">
-    <link href="https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&display=swap" rel="stylesheet"> 
+    <link href="https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
     <div class="container">
         {{template "header" .User}}
-        <form method="post" enctype="multipart/form-data">
-            <div class="title">
-                Post title: <br>
-                <input type="text" name="title" id="titleinput" maxlength="30" required> <br>
-            </div>
-            <div class="image">
-                Image: <br>
-                <input type="file" name="image" accept="image/*" id="image_input"> <br>
-            </div>
-            <div class="categories">
-                Post categories: <br>
-                <select name="categorie1" required>
-                    <option value="0" selected disabled>Required</option>
-                    {{range .Categories}}
-                    <option value="{{.ID}}">{{.Name}}</option>
-                    {{end}}
-                </select>
-                <select name="categorie2">
-                    <option value="0" selected disabled>Optional</option>
-                    {{range .Categories}}
-                    <option value="{{.ID}}">{{.Name}}</option>
-                    {{end}}
-                </select>
-            </div>
-            <div class="textarea">
-                <textarea name="data" cols="30" rows="10" required></textarea> <br>
-            </div>
-            <button type="submit">Post</button>
+        <div class="inputs">
+            <form method="post" enctype="multipart/form-data">
+                <div class="title">
+                    Post title: <br>
+                    <input type="text" name="title" id="titleinput" maxlength="30" required> <br>
+                </div>
+                <div class="image">
+                    Image: <br>
+                    <input type="file" name="image" accept="image/*" id="image_input"> <br>
+                </div>
+                <div class="categories">
+                    Post categories: <br>
+                    <select name="categorie1" required>
+                        <option value="0" selected disabled>Required</option>
+                        {{range .Categories}}
+                        <option value="{{.ID}}">{{.Name}}</option>
+                        {{end}}
+                    </select>
+                    <select name="categorie2">
+                        <option value="0" selected disabled>Optional</option>
+                        {{range .Categories}}
+                        <option value="{{.ID}}">{{.Name}}</option>
+                        {{end}}
+                    </select>
+                </div>
+                <div class="textarea">
+                    <textarea name="data" cols="30" rows="10" required></textarea> <br>
+                </div>
+                <button type="submit">Post</button>
+        </div>
         </form>
     </div>
 </body>

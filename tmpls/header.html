@@ -2,18 +2,18 @@
 <header>
     <div class="nav">
         <div class="links">
-            <a href="/">Main</a>
+            <a href="/">home</a>
         </div>
         <div class="user">
             {{ if eq .Role "guest" }}
-            <a href="/login">Log in</a> / 
-            <a href="/signup">Sign up</a>
+            <a href="/login">log in</a> / 
+            <a href="/signup">sign up</a>
             {{ end }}
 
             {{ if eq .Role "user" "admin" "moderator" }}
             <a href="/user/{{ .ID }}">{{ .Username }}</a> / 
-            <a href="/newpost">New post</a> / 
-            <a href="/logout">Log out</a>
+            <a href="/newpost">new post</a> / 
+            <a href="/logout">log out</a>
             {{ end }}
         </div>
     </div>

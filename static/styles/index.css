@@ -7,8 +7,12 @@ a {
 }
 
 .categories{
-    margin-top: 30px;
+    margin-top: 20px;
     font-size: 22px;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: solid 1px;
+    border-radius: 5px;
 }
 
 .categorie{

@@ -2,6 +2,13 @@ a{
     color: black;
 }
 
+.profile {
+    padding: 10px;
+    margin-bottom: 10px;
+    border: solid 1px;
+    border-radius: 5px;
+}
+
 .info {
     margin-bottom: 20px;
 }
@@ -10,12 +17,27 @@ a{
     margin-bottom: 20px;
 }
 
+.post {
+    padding: 10px;
+    margin-bottom: 10px;
+    border: solid 1px;
+    border-radius: 5px;
+}
+
 .comments {
     margin-bottom: 20px;
 }
 
 .comment {
     margin-bottom: 10px;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: solid 1px;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: solid 1px;
+    border-radius: 5px;
 }
 
 .likedposts{
@@ -24,6 +46,10 @@ a{
 
 .likedpost {
     margin-bottom: 20px;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: solid 1px;
+    border-radius: 5px;
 }
 
 .likedcomments{
@@ -32,4 +58,8 @@ a{
 
 .likedcomment{
     margin-bottom: 20px;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: solid 1px;
+    border-radius: 5px;
 }

@@ -5,6 +5,10 @@ a {
 .post {
     display: flex;
     flex-direction: column;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: solid 1px;
+    border-radius: 5px;
 }
 
 .title {
@@ -33,7 +37,11 @@ a {
 }
 
 .comment {
-    margin-bottom: 15px;
+    margin-top: 15px;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: solid 1px;
+    border-radius: 5px;
 }
 
 textarea {

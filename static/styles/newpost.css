@@ -2,6 +2,14 @@ a {
     color: black;
 }
 
+.inputs {
+    padding: 10px;
+    margin-bottom: 10px;
+    border: solid 1px;
+    border-radius: 5px;
+}
+
+
 #titleinput {
     width: 100%;
 }

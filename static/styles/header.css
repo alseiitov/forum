@@ -1,7 +1,9 @@
 body {
+    margin: 0;
     display: flex;
     justify-content: center;
     font-family: 'PT Sans Narrow', sans-serif;
+    background-color: white;
 }
 
 a {
@@ -19,6 +21,8 @@ a {
 .nav {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 20px;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: solid 1px;
+    border-radius: 5px;
 }
-
