@@ -392,10 +392,8 @@ func (post Post) InsertIntoDB(categories []int) int64 {
 	add, _ := db.Prepare("INSERT INTO posts (title, author, data, date, image) VALUES (?, ?, ?, ?, ?)")
 	defer add.Close()
 
-	add.Exec(post.Title, post.AuthorID, post.Data, post.Date, post.Image)
-
-	last, _ := db.Exec(`SELECT last_insert_rowid();`)
-	id, _ := last.LastInsertId()
+	res, _ := add.Exec(post.Title, post.AuthorID, post.Data, post.Date, post.Image)
+	id, _ := res.LastInsertId()
 
 	for _, cat := range categories {
 		addCat, _ := db.Prepare("INSERT INTO posts_categories (post_id, categorie_id) VALUES (?, ?)")
